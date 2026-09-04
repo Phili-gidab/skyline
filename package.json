@@ -1,0 +1,28 @@
+{
+  "name": "skyline-travel-solution",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173",
+    "model:optimize": "gltf-transform optimize model-source/aircraft-source.glb public/models/aircraft.glb --compress meshopt --simplify-ratio 0.45 --simplify-error 0.0012 --simplify-lock-border true --texture-size 1024 --texture-compress webp --join false --flatten false --instance false",
+    "model:inspect": "gltf-transform inspect public/models/aircraft.glb"
+  },
+  "dependencies": {
+    "@react-three/fiber": "^8.17.10",
+    "framer-motion": "^11.11.9",
+    "gsap": "^3.12.5",
+    "lenis": "^1.1.14",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "split-type": "^0.3.4",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@gltf-transform/cli": "^4.5.0",
+    "@vitejs/plugin-react": "^4.3.3",
+    "vite": "^5.4.10"
+  }
+}
