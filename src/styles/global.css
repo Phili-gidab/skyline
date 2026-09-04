@@ -422,12 +422,10 @@ button {
   color: var(--bone-2);
 }
 
-.nav__logo svg {
-  /* the mark is a 2:1 landscape lockup, so it needs real height to read;
-     at 1em it collapses into a smudge */
-  height: 1.55em;
+.nav__logo-img {
+  height: clamp(30px, 3.4vw, 44px);
   width: auto;
-  overflow: visible;
+  display: block;
 }
 
 .nav__links {
@@ -2196,31 +2194,57 @@ button {
 }
 
 /* ============================================================
-   LOGO MARK
-   The aircraft-and-swoosh, redrawn as vector in LogoMark.jsx.
-   Sized in em so it tracks whatever type it sits beside.
+   LOGO
+   Mark, wordmark and "TRAVEL SOLUTION" are traced SVG; the tagline is
+   live type (see Logo.jsx). --logo-w drives both so they scale together.
    ============================================================ */
 
-.nav__mark {
-  flex: 0 0 auto;
-}
-
-.preloader__brand {
+.logo {
   display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
+  flex-direction: column;
+  width: var(--logo-w);
 }
 
-.preloader__mark {
-  width: auto;
-  height: 2.4em;
-  color: var(--gold);
-  flex: 0 0 auto;
-}
-
-.footer__mark {
-  display: block;
-  width: clamp(84px, 12vw, 132px);
+.logo__art {
+  width: 100%;
   height: auto;
-  margin-bottom: clamp(1rem, 3vh, 2rem);
+  display: block;
+}
+
+.logo__tagline {
+  /* matched to the artwork: the tagline sits at ~69% of the logo width,
+     a touch left of centre */
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: calc(var(--logo-w) * 0.083);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--bone);
+  text-align: center;
+  white-space: nowrap;
+  margin-top: calc(var(--logo-w) * 0.022);
+  padding-right: calc(var(--logo-w) * 0.06);
+}
+
+.logo-compact {
+  width: auto;
+  display: block;
+}
+
+.nav__logo-img {
+  height: clamp(30px, 3.4vw, 42px);
+}
+
+.preloader__logo {
+  --logo-w: clamp(150px, 17vw, 220px);
+}
+
+.footer__logo {
+  --logo-w: clamp(200px, 24vw, 290px);
+  margin-bottom: clamp(1.25rem, 3vh, 2rem);
+}
+
+@media (max-width: 600px) {
+  .preloader__logo { --logo-w: 148px; }
+  .footer__logo { --logo-w: 190px; }
 }

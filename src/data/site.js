@@ -2,6 +2,8 @@ export const BRAND = {
   name: 'Skyline Travel Solution',
   short: 'Skyline',
   tagline: 'Your Journey, Our Priority',
+  // the tagline set inside the logo artwork; see README for the two-tagline note
+  logoTagline: 'You belong Everywhere!',
   city: 'Addis Ababa',
   country: 'Ethiopia',
   address: '22 Bole Road, Bihul Building, 9th Floor',

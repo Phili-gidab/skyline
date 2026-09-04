@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { BRAND, NAV } from '../data/site'
 import { scrollTo } from '../lib/smooth'
-import LogoMark from './LogoMark'
+import Logo from './Logo'
 
 export default function Nav({ ready }) {
   const navRef = useRef(null)
@@ -68,10 +68,8 @@ export default function Nav({ ready }) {
     <>
       <header className="nav" ref={navRef} style={{ opacity: 0 }}>
         <a className="nav__logo" href="#top" onClick={(e) => go(e, 'body')} data-cursor="Top">
-          {/* the nav is mix-blend-mode: difference, so the mark inherits
-              currentColor rather than carrying its own green */}
-          <LogoMark className="nav__mark" aria-hidden="true" title="" />
-          <span>Skyline</span>
+          {/* the tagline is dropped at nav size: it is unreadable below ~150px */}
+          <Logo variant="compact" className="nav__logo-img" />
         </a>
 
         <nav className="nav__links">

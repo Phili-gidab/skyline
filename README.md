@@ -118,26 +118,46 @@ there are no decoder `.wasm` files to host and keep in sync. It is registered in
 
 ## The logo
 
-The client supplied only rasters (a 1280px PNG and a 640px JPG, both soft), so the mark is
-**redrawn as vector** in [`src/components/LogoMark.jsx`](src/components/LogoMark.jsx) — two tapered
-crescents and one closed aircraft outline. Geometry was measured off the source bitmap by sampling
-its green channel, then checked by overlaying the SVG on the original at 50% opacity, which is why
-the `viewBox` is `0 0 400 200`: that maps to x 100..490, y 95..295 in the 640px original.
+The client supplied only rasters (a 1280px PNG and a 640px JPG, both soft), so the artwork is
+**traced** rather than redrawn — [`tools/trace-logo.py`](tools/trace-logo.py) recovers its real
+outlines instead of approximating them:
 
-Brand greens, sampled from the source: **`#0e8f47`** dark, **`#23ad68`** light.
+```bash
+python tools/trace-logo.py     # brand-source/*.png -> public/logo*.svg + favicon
+```
 
-The mark takes `dark` / `light` props that default to `currentColor`, so it inherits the surrounding
-colour in the nav (which is `mix-blend-mode: difference`) and the preloader, and is passed its real
-greens only in the footer.
+Marching squares extracts sub-pixel contours at the alpha half-level, Douglas-Peucker simplifies
+them, and each colour band becomes one even-odd path. Three details matter:
 
-`public/logo-mark.svg` and `public/favicon.svg` are **generated from the component** rather than
-hand-kept, so they cannot drift from it. The originals are kept for reference in `brand-source/`,
-deliberately outside `public/` so 630 KB of raster never ships.
+- **The source is upsampled 3x before tracing.** Marching squares interpolates between corner
+  values, so tracing a Lanczos upsample of an antialiased edge gives genuinely smoother contours
+  than tracing at native size.
+- **Simplification is per band.** The tolerance that suits the mark destroys small type.
+- **The two-tone wordmark is split by contour centroid, never by masking a column range.** Masking
+  cut straight through the "Y" and left a visible seam where the two paths butted together. Splitting
+  whole contours by centroid means a letter is never divided — 7 contours for 7 letters.
 
-The wordmark itself is *not* traced — "SKYLINE", "TRAVEL SOLUTION" and the tagline are set in the
-site's own typography. Hand-faking letterforms from a blurry raster looks worse than typesetting
-them. If the client can get the original vector (AI/EPS/PDF) from whoever designed it, that would
-be better than any trace.
+**The tagline is not traced.** It is only ~39px tall in the supplied raster and its letterforms are
+already eroded there, so tracing faithfully reproduces the damage. It is set as live type in
+[`Logo.jsx`](src/components/Logo.jsx) instead, which stays crisp at any size. `--logo-w` drives both
+the artwork and the tagline so they scale together.
+
+Generated assets, all from the one script so they cannot drift:
+
+| File | Use |
+| --- | --- |
+| `logo-lockup.svg` | mark + wordmark + TRAVEL SOLUTION, dark grounds — paired with live tagline |
+| `logo-lockup-color.svg` | same, original brand colour, for light grounds |
+| `logo-compact.svg` | mark + wordmark only — the nav, where a tagline is unreadable |
+| `logo.svg` / `logo-color.svg` | full lockup including the traced tagline, if ever needed flat |
+| `favicon.svg` | the mark alone; anything with type is illegible at 32px |
+
+Brand greens sampled from the source: **`#0e8f47`** dark, **`#23ad68`** light, lifted to `#25b06b` /
+`#3ecb84` on the dark ground. Raster originals live in `brand-source/`, deliberately outside
+`public/` so 630 KB of source never ships.
+
+If the client can get the original vector (AI/EPS/PDF) from whoever designed the logo, that is still
+better than any trace — particularly for the tagline.
 
 ## Design system
 

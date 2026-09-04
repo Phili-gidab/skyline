@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { BRAND } from '../data/site'
-import LogoMark from './LogoMark'
+import Logo from './Logo'
 
 const WORDS = ['Türkiye', 'Italia', 'Nippon', 'France', 'Österreich', 'America', 'Skyline']
 
@@ -69,10 +69,7 @@ export default function Preloader({ onDone }) {
   return (
     <div className="preloader" ref={root} style={{ clipPath: 'inset(0% 0% 0% 0%)' }}>
       <div className="preloader__top">
-        <span className="preloader__brand">
-          <LogoMark className="preloader__mark" aria-hidden="true" title="" />
-          <span className="label">{BRAND.name}</span>
-        </span>
+        <Logo className="preloader__logo" />
         <span className="label">
           {BRAND.city} — {BRAND.country}
         </span>

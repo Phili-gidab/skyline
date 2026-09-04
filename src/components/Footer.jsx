@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { BRAND } from '../data/site'
-import LogoMark, { BRAND_GREEN_DARK, BRAND_GREEN_LIGHT } from './LogoMark'
+import Logo from './Logo'
 
 export default function Footer() {
   const mark = useRef(null)
@@ -25,13 +25,8 @@ export default function Footer() {
 
   return (
     <footer className="footer">
-      {/* the one place the mark appears in its own brand greens */}
-      <LogoMark
-        className="footer__mark"
-        dark={BRAND_GREEN_DARK}
-        light={BRAND_GREEN_LIGHT}
-        title={`${BRAND.name} logo`}
-      />
+      {/* the one place the tagline is set large enough to read */}
+      <Logo className="footer__logo" />
 
       <div className="footer__wordmark" ref={mark}>
         Skyline
