@@ -2,17 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { BRAND, NAV } from '../data/site'
 import { scrollTo } from '../lib/smooth'
-
-function Mark() {
-  return (
-    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
-      <circle cx="16" cy="16" r="14" stroke="currentColor" strokeWidth="1.2" opacity="0.5" />
-      <path d="M2 16h28M16 2c4.5 4.3 4.5 23.7 0 28M16 2c-4.5 4.3-4.5 23.7 0 28" stroke="currentColor" strokeWidth="1.2" opacity="0.5" />
-      <path d="M6.5 22.5 25.5 9.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <circle cx="25.5" cy="9.5" r="2.4" fill="currentColor" />
-    </svg>
-  )
-}
+import LogoMark from './LogoMark'
 
 export default function Nav({ ready }) {
   const navRef = useRef(null)
@@ -78,7 +68,9 @@ export default function Nav({ ready }) {
     <>
       <header className="nav" ref={navRef} style={{ opacity: 0 }}>
         <a className="nav__logo" href="#top" onClick={(e) => go(e, 'body')} data-cursor="Top">
-          <Mark />
+          {/* the nav is mix-blend-mode: difference, so the mark inherits
+              currentColor rather than carrying its own green */}
+          <LogoMark className="nav__mark" aria-hidden="true" title="" />
           <span>Skyline</span>
         </a>
 

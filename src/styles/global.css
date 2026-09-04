@@ -423,8 +423,10 @@ button {
 }
 
 .nav__logo svg {
-  width: clamp(20px, 2vw, 26px);
-  height: auto;
+  /* the mark is a 2:1 landscape lockup, so it needs real height to read;
+     at 1em it collapses into a smudge */
+  height: 1.55em;
+  width: auto;
   overflow: visible;
 }
 
@@ -2191,4 +2193,34 @@ button {
   .stage-wordmark span {
     font-size: clamp(4rem, 26vw, 9rem);
   }
+}
+
+/* ============================================================
+   LOGO MARK
+   The aircraft-and-swoosh, redrawn as vector in LogoMark.jsx.
+   Sized in em so it tracks whatever type it sits beside.
+   ============================================================ */
+
+.nav__mark {
+  flex: 0 0 auto;
+}
+
+.preloader__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.preloader__mark {
+  width: auto;
+  height: 2.4em;
+  color: var(--gold);
+  flex: 0 0 auto;
+}
+
+.footer__mark {
+  display: block;
+  width: clamp(84px, 12vw, 132px);
+  height: auto;
+  margin-bottom: clamp(1rem, 3vh, 2rem);
 }

@@ -116,6 +116,29 @@ Compression is **meshopt, not Draco**, deliberately: the meshopt decoder ships i
 there are no decoder `.wasm` files to host and keep in sync. It is registered in `Aircraft.jsx` via
 `loader.setMeshoptDecoder(MeshoptDecoder)` — remove that and a compressed model will fail to load.
 
+## The logo
+
+The client supplied only rasters (a 1280px PNG and a 640px JPG, both soft), so the mark is
+**redrawn as vector** in [`src/components/LogoMark.jsx`](src/components/LogoMark.jsx) — two tapered
+crescents and one closed aircraft outline. Geometry was measured off the source bitmap by sampling
+its green channel, then checked by overlaying the SVG on the original at 50% opacity, which is why
+the `viewBox` is `0 0 400 200`: that maps to x 100..490, y 95..295 in the 640px original.
+
+Brand greens, sampled from the source: **`#0e8f47`** dark, **`#23ad68`** light.
+
+The mark takes `dark` / `light` props that default to `currentColor`, so it inherits the surrounding
+colour in the nav (which is `mix-blend-mode: difference`) and the preloader, and is passed its real
+greens only in the footer.
+
+`public/logo-mark.svg` and `public/favicon.svg` are **generated from the component** rather than
+hand-kept, so they cannot drift from it. The originals are kept for reference in `brand-source/`,
+deliberately outside `public/` so 630 KB of raster never ships.
+
+The wordmark itself is *not* traced — "SKYLINE", "TRAVEL SOLUTION" and the tagline are set in the
+site's own typography. Hand-faking letterforms from a blurry raster looks worse than typesetting
+them. If the client can get the original vector (AI/EPS/PDF) from whoever designed it, that would
+be better than any trace.
+
 ## Design system
 
 All tokens live at the top of [src/styles/global.css](src/styles/global.css).
