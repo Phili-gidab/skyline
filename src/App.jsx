@@ -101,4 +101,7 @@ export default function App() {
   )
 }
 
-if (typeof window !== 'undefined') window.gsap = gsap
+if (typeof window !== 'undefined') {
+  window.gsap = gsap
+  window.ScrollTrigger = ScrollTrigger
+}

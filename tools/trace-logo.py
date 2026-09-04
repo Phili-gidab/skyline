@@ -206,6 +206,13 @@ def main():
           'public/logo-compact.svg', only=['mark', 'sky', 'line'],
           vh=WORD_END + 8, label='Skyline Travel Solution')
 
+    # Same compact lockup for the one light section. The nav used to rely on
+    # mix-blend-mode: difference, which turned the green mark magenta over
+    # cream, so it now swaps to this instead.
+    build({'mark': '#0e8f47', 'sky': '#06130d', 'line': '#0e8f47'},
+          'public/logo-compact-dark.svg', only=['mark', 'sky', 'line'],
+          vh=WORD_END + 8, label='Skyline Travel Solution')
+
     # Lockup without the tagline. The tagline is only ~39px tall in the
     # source and its letterforms are already eroded there, so no tolerance
     # recovers them — it is set as live type in Logo.jsx instead.

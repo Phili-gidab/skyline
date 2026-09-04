@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { BRAND, NAV } from '../data/site'
 import { scrollTo } from '../lib/smooth'
 import Logo from './Logo'
@@ -8,6 +9,7 @@ export default function Nav({ ready }) {
   const navRef = useRef(null)
   const menuRef = useRef(null)
   const [open, setOpen] = useState(false)
+  const [onLight, setOnLight] = useState(false)
 
   // hide on scroll down, reveal on scroll up
   useEffect(() => {
@@ -22,8 +24,28 @@ export default function Nav({ ready }) {
       last = y
     }
     window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
     return () => window.removeEventListener('scroll', onScroll)
   }, [ready, open])
+
+  /* The nav used mix-blend-mode: difference to stay readable on any ground.
+     That works for text but not for a coloured logo — the brand green came
+     out magenta over the cream Study section. It now swaps to an explicit
+     light state instead, which is predictable and keeps the mark on-brand. */
+  useEffect(() => {
+    if (!ready) return
+    const light = document.querySelector('.study')
+    const el = navRef.current
+    if (!light || !el) return
+
+    const st = ScrollTrigger.create({
+      trigger: light,
+      start: 'top 72px',
+      end: 'bottom 72px',
+      onToggle: (self) => setOnLight(self.isActive),
+    })
+    return () => st.kill()
+  }, [ready])
 
   // entrance
   useEffect(() => {
@@ -66,10 +88,10 @@ export default function Nav({ ready }) {
 
   return (
     <>
-      <header className="nav" ref={navRef} style={{ opacity: 0 }}>
+      <header className={`nav ${onLight ? 'is-light' : ''}`} ref={navRef} style={{ opacity: 0 }}>
         <a className="nav__logo" href="#top" onClick={(e) => go(e, 'body')} data-cursor="Top">
           {/* the tagline is dropped at nav size: it is unreadable below ~150px */}
-          <Logo variant="compact" className="nav__logo-img" />
+          <Logo variant="compact" tone={onLight ? 'dark' : 'light'} className="nav__logo-img" />
         </a>
 
         <nav className="nav__links">

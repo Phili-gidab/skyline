@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import Aircraft from './Aircraft.jsx'
@@ -187,9 +187,28 @@ class GLBoundary extends React.Component {
 
 export default function Stage() {
   const [, setReady] = useState(false)
+  const shell = useRef(null)
+
+  /* On a small screen the aircraft shares the middle of the viewport with the
+     panel copy, and the two collide. Past the hero it steps back so the text
+     stays readable; on desktop there is room for both, so it does not. */
+  useEffect(() => {
+    if (!window.matchMedia('(max-width: 860px)').matches) return
+    const el = shell.current
+    if (!el) return
+    const onScroll = () => {
+      el.classList.toggle('is-recessed', window.scrollY > window.innerHeight * 0.75)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      el.classList.remove('is-recessed')
+    }
+  }, [])
 
   return (
-    <div className="stage" aria-hidden="true">
+    <div className="stage" aria-hidden="true" ref={shell}>
       <GLBoundary>
         <Canvas
           dpr={[1, typeof window !== 'undefined' && window.innerWidth < 860 ? 1.5 : 1.75]}

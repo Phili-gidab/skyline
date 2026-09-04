@@ -182,22 +182,22 @@ export const PROCESS = [
   {
     n: '01',
     title: 'Consultation',
-    body: 'A free sit-down at Bole, or a call on Telegram. We read your profile and tell you which routes are genuinely open to you.',
+    body: 'A free sit-down at Bole, or a call on Telegram. We tell you which routes are genuinely open to you.',
   },
   {
     n: '02',
     title: 'File Preparation',
-    body: 'Documents collected, translated, notarised and assembled into a dossier built to the specific consulate standard.',
+    body: 'Collected, translated, notarised and assembled to the standard of the consulate that will read it.',
   },
   {
     n: '03',
     title: 'Submission and Tracking',
-    body: 'Appointment booked, biometrics attended, application lodged. You get a status update at every stage. No silence, no guessing.',
+    body: 'Appointment booked, biometrics attended, application lodged. A status update at every stage.',
   },
   {
     n: '04',
     title: 'Approval and Departure',
-    body: 'Visa collected, fee settled, ticket issued. We brief you before you fly and stay reachable after you land.',
+    body: 'Visa collected, fee settled, ticket issued. We brief you before you fly, and stay reachable after.',
   },
 ]
 

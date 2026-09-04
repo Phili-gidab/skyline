@@ -121,8 +121,7 @@ export default function Story({ ready }) {
       // every panel after the hero fades its copy in and out with the scroll,
       // so the aircraft is never fighting text for attention
       const fadePanels = gsap.utils.toArray('.panel--fade')
-      fadePanels.forEach((panel, i) => {
-        const isLast = i === fadePanels.length - 1
+      fadePanels.forEach((panel) => {
         gsap.fromTo(
           panel.querySelector('.panel__inner'),
           { y: 60, opacity: 0 },
@@ -139,9 +138,9 @@ export default function Story({ ready }) {
             },
           }
         )
-        // nothing follows the last panel, so it stays put
-        if (isLast) return
-
+        /* Every panel fades out, the last one included: it is painted over
+           the fixed stage, so leaving it at full opacity kept "THE RECORD"
+           sitting on top of the Destinations section below. */
         gsap.to(panel.querySelector('.panel__inner'), {
           y: -36,
           opacity: 0,
@@ -285,8 +284,8 @@ export default function Story({ ready }) {
                   ADD <i>→</i> {r.iata}
                 </span>
                 <span className="route__city">{r.board}</span>
-                <span className="route__kind">{r.kind}</span>
                 <span className="route__time">{r.duration}</span>
+                <span className="route__kind">{r.kind}</span>
               </div>
             ))}
           </div>

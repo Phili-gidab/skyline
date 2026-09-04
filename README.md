@@ -190,6 +190,16 @@ section with the Post University tables), Careers, Contact, Footer.
 The split-flap board ([SplitFlap.jsx](src/components/SplitFlap.jsx)) is a Solari display: each cell
 riffles the charset and settles left to right.
 
+## The nav
+
+The bar is fixed over both dark sections and one cream one (Study). It used
+`mix-blend-mode: difference`, which keeps text legible on any ground — but inverts
+colour, so the logo's brand green came out **magenta** over cream. It now carries an
+explicit `is-light` state, driven by a ScrollTrigger on `.study`, which swaps both the
+text colour and the logo file. A gradient scrim sits behind the bar at all times so
+content scrolling underneath stays readable; that is deliberately CSS-only rather than a
+JS-toggled class, which left the bar briefly unreadable mid-scroll.
+
 ## Gotchas worth knowing
 
 - **Never name a source directory after a package.** `src/three/` made Vite resolve
@@ -198,6 +208,15 @@ riffles the charset and settles left to right.
   and `choreography.js`.
 - Additive blending in the 3D scene is kept very low-alpha, and any `gl_PointSize` is attenuated to
   roughly two device pixels. Raising either turns the scene into a glowing blob.
+- **Story panels must fit one viewport.** They are `min-height: 100svh` with centred content, so a
+  panel whose content overflows pushes itself up under the nav and collides with the neighbouring
+  panel's crossfade. The routes and process panels both did this at 1440x900 until their rows were
+  tightened; there is a `max-height: 940px` block that tightens them further on short laptops.
+- Every `.panel--fade` fades out, the last one included. Skipping the last left "THE RECORD" painted
+  on top of the Destinations section below it, because the panels sit over a fixed stage.
+- Puppeteer's screenshot `clip` is in **page** coordinates, not viewport — clipping at `y: 0` after
+  scrolling captures the top of the document, not what is on screen. Worth knowing if you script
+  visual checks.
 - **The aircraft is white, so the green must stay a rim light only.** Raising the rim's intensity or
   the ambient's saturation tints the whole fuselage green — it has happened twice.
 - `gsap.context(fn, root)` scopes selector strings to `root`. The wordmark lives *outside* `.story`,

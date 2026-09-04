@@ -102,9 +102,10 @@ export const BEATS = [
     // small, high and well back: the statistics are centred, so the aircraft
     // has to clear them entirely rather than merely sit behind them
     rot: [0.5, -1.1, 0.22],
-    pos: [0.4, 2.5, -4.5],
+    pos: [0.5, 3.8, -5.2],
     cam: [0, 0.75, 11.5],
     fov: 42,
+    scale: 0.86,
   },
 ]
 

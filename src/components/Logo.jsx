@@ -13,12 +13,12 @@ import { BRAND } from '../data/site'
  * Sizing is driven by the `--logo-w` custom property so the tagline scales
  * with the artwork rather than needing a size per usage.
  */
-export default function Logo({ variant = 'full', className = '', ...rest }) {
+export default function Logo({ variant = 'full', tone = 'light', className = '', ...rest }) {
   if (variant === 'compact') {
     return (
       <img
         className={`logo-compact ${className}`}
-        src="/logo-compact.svg"
+        src={tone === 'dark' ? '/logo-compact-dark.svg' : '/logo-compact.svg'}
         alt={BRAND.name}
         {...rest}
       />
