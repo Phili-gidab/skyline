@@ -18,51 +18,6 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 
 export const MODEL_URL = '/models/aircraft.glb'
 
-/**
- * The white spiral painted on a real engine's spinner cone.
- *
- * It exists on actual aircraft for exactly the reason it is needed here: a
- * fan disc is rotationally symmetric, so spinning it reads as static. The
- * spiral is the asymmetry that makes rotation legible.
- */
-function makeSpinnerTexture() {
-  const S = 256
-  const c = document.createElement('canvas')
-  c.width = c.height = S
-  const ctx = c.getContext('2d')
-  const r = S / 2
-
-  // dark cone, so the mark reads against a pale nacelle
-  ctx.fillStyle = '#13181a'
-  ctx.beginPath()
-  ctx.arc(r, r, r - 2, 0, Math.PI * 2)
-  ctx.fill()
-
-  // Archimedean spiral, thickening outward the way a painted one does
-  ctx.strokeStyle = '#f3efe4'
-  ctx.lineCap = 'round'
-  const TURNS = 1.35
-  const steps = 220
-  for (let i = 0; i < steps; i++) {
-    const t0 = i / steps
-    const t1 = (i + 1) / steps
-    const a0 = t0 * Math.PI * 2 * TURNS
-    const a1 = t1 * Math.PI * 2 * TURNS
-    const r0 = t0 * (r - 12)
-    const r1 = t1 * (r - 12)
-    ctx.lineWidth = 3 + t0 * 15
-    ctx.beginPath()
-    ctx.moveTo(r + Math.cos(a0) * r0, r + Math.sin(a0) * r0)
-    ctx.lineTo(r + Math.cos(a1) * r1, r + Math.sin(a1) * r1)
-    ctx.stroke()
-  }
-
-  const tex = new THREE.CanvasTexture(c)
-  tex.colorSpace = THREE.SRGBColorSpace
-  tex.anisotropy = 4
-  return tex
-}
-
 /** Target length in world units, so any model reads at the same scale. */
 const TARGET_LENGTH = 4.6
 
@@ -85,8 +40,6 @@ function GltfAircraft({ onReady }) {
   const gltf = useLoader(GLTFLoader, MODEL_URL, (loader) => {
     loader.setMeshoptDecoder(MeshoptDecoder)
   })
-
-  const spinnerTexture = useMemo(() => makeSpinnerTexture(), [])
 
   const prepared = useMemo(() => {
     const root = gltf.scene.clone(true)
@@ -180,27 +133,6 @@ function GltfAircraft({ onReady }) {
       // attach() re-parents while preserving the world transform
       group.forEach((m) => pivot.attach(m))
 
-      /* The spinner spiral.
-
-         The tail fin sits at +X on this model (which is why
-         MODEL_ROTATION_OFFSET flips it), so the intake faces -X. The disc is
-         parked clear of the fan group's own forward face rather than at a
-         guessed offset, with enough standoff not to z-fight the spinner. */
-      const radius = Math.max(box.max.y - box.min.y, box.max.z - box.min.z) / 2
-      const halfDepth = (box.max.x - box.min.x) / 2
-
-      const disc = new THREE.Mesh(
-        new THREE.CircleGeometry(radius * 0.3, 48),
-        new THREE.MeshBasicMaterial({
-          map: spinnerTexture,
-          toneMapped: false, // legible whatever the key light is doing
-          side: THREE.DoubleSide,
-        })
-      )
-      disc.rotation.y = -Math.PI / 2 // the +Z face onto -X
-      disc.position.set(-halfDepth - radius * 0.12, 0, 0)
-      pivot.add(disc)
-
       pivots.push(pivot)
     })
 
@@ -231,7 +163,7 @@ function GltfAircraft({ onReady }) {
     })
 
     return { wrapper, pivots }
-  }, [gltf, spinnerTexture])
+  }, [gltf])
 
   useEffect(() => {
     onReady?.(prepared.pivots)
