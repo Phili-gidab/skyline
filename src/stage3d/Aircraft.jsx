@@ -18,6 +18,51 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 
 export const MODEL_URL = '/models/aircraft.glb'
 
+/**
+ * The white spiral painted on a real engine's spinner cone.
+ *
+ * It exists on actual aircraft for exactly the reason it is needed here: a
+ * fan disc is rotationally symmetric, so spinning it reads as static. The
+ * spiral is the asymmetry that makes rotation legible.
+ */
+function makeSpinnerTexture() {
+  const S = 256
+  const c = document.createElement('canvas')
+  c.width = c.height = S
+  const ctx = c.getContext('2d')
+  const r = S / 2
+
+  // dark cone, so the mark reads against a pale nacelle
+  ctx.fillStyle = '#13181a'
+  ctx.beginPath()
+  ctx.arc(r, r, r - 2, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Archimedean spiral, thickening outward the way a painted one does
+  ctx.strokeStyle = '#f3efe4'
+  ctx.lineCap = 'round'
+  const TURNS = 1.35
+  const steps = 220
+  for (let i = 0; i < steps; i++) {
+    const t0 = i / steps
+    const t1 = (i + 1) / steps
+    const a0 = t0 * Math.PI * 2 * TURNS
+    const a1 = t1 * Math.PI * 2 * TURNS
+    const r0 = t0 * (r - 12)
+    const r1 = t1 * (r - 12)
+    ctx.lineWidth = 3 + t0 * 15
+    ctx.beginPath()
+    ctx.moveTo(r + Math.cos(a0) * r0, r + Math.sin(a0) * r0)
+    ctx.lineTo(r + Math.cos(a1) * r1, r + Math.sin(a1) * r1)
+    ctx.stroke()
+  }
+
+  const tex = new THREE.CanvasTexture(c)
+  tex.colorSpace = THREE.SRGBColorSpace
+  tex.anisotropy = 4
+  return tex
+}
+
 /** Target length in world units, so any model reads at the same scale. */
 const TARGET_LENGTH = 4.6
 
@@ -41,24 +86,78 @@ function GltfAircraft({ onReady }) {
     loader.setMeshoptDecoder(MeshoptDecoder)
   })
 
+  const spinnerTexture = useMemo(() => makeSpinnerTexture(), [])
+
   const prepared = useMemo(() => {
     const root = gltf.scene.clone(true)
 
     /* Engine fans.
-       The model's mesh names are Blender defaults, so the fans are found by
-       name prefix: each engine's blade disc and spinner cone share a numbered
-       Cylinder group (029/028 to port, 026/025 to starboard). They are
-       re-parented onto a pivot at their own centre so they can spin about the
-       engine's thrust axis, which is the model's X axis.
-       If you swap the model, update FAN_PREFIXES or the fans simply won't spin. */
-    const FAN_PREFIXES = ['Cylinder.029', 'Cylinder.028', 'Cylinder.026', 'Cylinder.025']
-    const fanMeshes = []
+
+       Two things make this fiddly:
+
+       1. three's GLTFLoader runs node names through
+          PropertyBinding.sanitizeNodeName, which replaces dots with
+          underscores. The glTF says "Cylinder.026_Material.005_0"; the
+          Object3D is called "Cylinder_026_Material_005_0". Matching the
+          glTF name silently finds nothing, which is exactly what happened.
+       2. World matrices are stale on a freshly cloned scene, so
+          getWorldPosition and expandByObject must not be trusted until
+          updateMatrixWorld has run.
+
+       Names are matched loosely, and if that finds nothing the fans are
+       located by shape instead — a fan is a thin, round disc sitting well
+       off the centreline. That keeps this working if the model is swapped. */
+    root.updateMatrixWorld(true)
+
+    const norm = (n) => (n || '').replace(/[^A-Za-z0-9]/g, '_')
+    const FAN_PREFIXES = ['Cylinder_026', 'Cylinder_025', 'Cylinder_029', 'Cylinder_028']
+
+    const meshes = []
     root.traverse((o) => {
-      if (o.isMesh && FAN_PREFIXES.some((p) => (o.name || '').startsWith(p))) fanMeshes.push(o)
+      if (o.isMesh) meshes.push(o)
     })
 
+    let fanMeshes = meshes.filter((m) => FAN_PREFIXES.some((p) => norm(m.name).startsWith(p)))
+
+    if (!fanMeshes.length) {
+      const rootBox = new THREE.Box3().setFromObject(root)
+      const rootSize = rootBox.getSize(new THREE.Vector3())
+      const rootMid = rootBox.getCenter(new THREE.Vector3())
+      const longest = Math.max(rootSize.x, rootSize.y, rootSize.z)
+      const b = new THREE.Box3()
+      const sz = new THREE.Vector3()
+      const mid = new THREE.Vector3()
+
+      const discs = meshes.filter((m) => {
+        b.setFromObject(m)
+        b.getSize(sz)
+        b.getCenter(mid)
+        const face = Math.max(sz.y, sz.z)
+        const round = Math.min(sz.y, sz.z) / (face || 1)
+        return (
+          sz.x < face * 0.5 &&
+          round > 0.7 &&
+          face > longest * 0.02 &&
+          face < longest * 0.12 &&
+          Math.abs(mid.z - rootMid.z) > rootSize.z * 0.12
+        )
+      })
+
+      // pull in whatever shares each disc's centre, so the spinner cone
+      // spins with its own blades
+      fanMeshes = meshes.filter((m) => {
+        b.setFromObject(m)
+        b.getCenter(mid)
+        return discs.some((d) => {
+          const db = new THREE.Box3().setFromObject(d)
+          const dc = db.getCenter(new THREE.Vector3())
+          const dr = Math.max(db.max.y - db.min.y, db.max.z - db.min.z) / 2
+          return mid.distanceTo(dc) < dr * 0.6
+        })
+      })
+    }
+
     const pivots = []
-    // group the blades by which side of the fuselage they sit on
     const bySide = { port: [], star: [] }
     const wp = new THREE.Vector3()
     fanMeshes.forEach((m) => {
@@ -68,6 +167,7 @@ function GltfAircraft({ onReady }) {
 
     Object.values(bySide).forEach((group) => {
       if (!group.length) return
+
       const box = new THREE.Box3()
       group.forEach((m) => box.expandByObject(m))
       const centre = box.getCenter(new THREE.Vector3())
@@ -75,15 +175,31 @@ function GltfAircraft({ onReady }) {
       const pivot = new THREE.Group()
       pivot.position.copy(centre)
       root.add(pivot)
+      pivot.updateMatrixWorld(true)
 
-      group.forEach((m) => {
-        m.updateWorldMatrix(true, false)
-        const keep = m.matrixWorld.clone()
-        pivot.add(m)
-        // preserve the mesh's world placement now that its parent changed
-        m.matrix.copy(pivot.matrixWorld.clone().invert().multiply(keep))
-        m.matrix.decompose(m.position, m.quaternion, m.scale)
-      })
+      // attach() re-parents while preserving the world transform
+      group.forEach((m) => pivot.attach(m))
+
+      /* The spinner spiral.
+
+         The tail fin sits at +X on this model (which is why
+         MODEL_ROTATION_OFFSET flips it), so the intake faces -X. The disc is
+         parked clear of the fan group's own forward face rather than at a
+         guessed offset, with enough standoff not to z-fight the spinner. */
+      const radius = Math.max(box.max.y - box.min.y, box.max.z - box.min.z) / 2
+      const halfDepth = (box.max.x - box.min.x) / 2
+
+      const disc = new THREE.Mesh(
+        new THREE.CircleGeometry(radius * 0.3, 48),
+        new THREE.MeshBasicMaterial({
+          map: spinnerTexture,
+          toneMapped: false, // legible whatever the key light is doing
+          side: THREE.DoubleSide,
+        })
+      )
+      disc.rotation.y = -Math.PI / 2 // the +Z face onto -X
+      disc.position.set(-halfDepth - radius * 0.12, 0, 0)
+      pivot.add(disc)
 
       pivots.push(pivot)
     })
@@ -115,7 +231,7 @@ function GltfAircraft({ onReady }) {
     })
 
     return { wrapper, pivots }
-  }, [gltf])
+  }, [gltf, spinnerTexture])
 
   useEffect(() => {
     onReady?.(prepared.pivots)

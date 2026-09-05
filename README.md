@@ -214,6 +214,18 @@ JS-toggled class, which left the bar briefly unreadable mid-scroll.
   tightened; there is a `max-height: 940px` block that tightens them further on short laptops.
 - Every `.panel--fade` fades out, the last one included. Skipping the last left "THE RECORD" painted
   on top of the Destinations section below it, because the panels sit over a fixed stage.
+- **three's GLTFLoader renames nodes.** It runs every node name through
+  `PropertyBinding.sanitizeNodeName`, which replaces dots with underscores: the glTF says
+  `Cylinder.026_Material.005_0`, the `Object3D` is called `Cylinder_026_Material_005_0`. Matching
+  the glTF name finds nothing and fails silently — the engine fans looked wired for weeks and had
+  never once turned. `Aircraft.jsx` now normalises names before matching, and falls back to finding
+  the fans by shape so a model swap does not break them again.
+- **World matrices are stale on a freshly cloned scene.** `getWorldPosition` and
+  `Box3.expandByObject` both return garbage until `updateMatrixWorld(true)` has run, which silently
+  collapsed both engine fans onto one pivot in the middle of the fuselage.
+- **`RoomEnvironment` is too expensive here.** It renders a whole box scene per generation and
+  stalled first paint outright on software GL. The environment is a 64x32 procedural gradient
+  instead, which is near-free and keeps the scene's own palette.
 - Puppeteer's screenshot `clip` is in **page** coordinates, not viewport — clipping at `y: 0` after
   scrolling captures the top of the document, not what is on screen. Worth knowing if you script
   visual checks.

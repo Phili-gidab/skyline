@@ -76,7 +76,7 @@ function Rig({ onReady }) {
 
     // engine fans, always turning
     for (let i = 0; i < fans.current.length; i++) {
-      fans.current[i].rotation.x += delta * 9
+      fans.current[i].rotation.x += delta * 11
     }
 
     const beat = sampleBeats(stage.progress)
@@ -154,6 +154,84 @@ function Rig({ onReady }) {
   )
 }
 
+/**
+ * A generated image-based environment.
+ *
+ * Directional lights alone leave a metal airframe looking like flat plastic —
+ * there is nothing for it to reflect. This is a tiny equirectangular gradient
+ * (sky above, ground below, a warm band where the key light sits) pushed
+ * through PMREM, which gives the fuselage soft, believable falloff across its
+ * curvature.
+ *
+ * Deliberately NOT three's RoomEnvironment: that renders a whole box scene
+ * per generation, which stalls first paint on software GL and low-end GPUs —
+ * the machines much of this site's audience is on. A 64x32 gradient costs
+ * almost nothing and, unlike a neutral white studio, keeps the scene's own
+ * palette so the green rim light is not washed out.
+ */
+function buildEnvTexture() {
+  const W = 64
+  const H = 32
+  const data = new Uint8Array(W * H * 4)
+
+  const sky = [0.13, 0.20, 0.17]
+  const ground = [0.03, 0.06, 0.05]
+  const key = [1.0, 0.96, 0.9]
+
+  for (let y = 0; y < H; y++) {
+    // 0 at the top of the sphere, 1 at the bottom
+    const t = y / (H - 1)
+    for (let x = 0; x < W; x++) {
+      const u = x / (W - 1)
+      const mix = Math.pow(t, 0.8)
+      let r = sky[0] * (1 - mix) + ground[0] * mix
+      let g = sky[1] * (1 - mix) + ground[1] * mix
+      let b = sky[2] * (1 - mix) + ground[2] * mix
+
+      // a soft highlight where the key light comes from, so the fuselage
+      // picks up a moving specular as it turns
+      const dx = Math.min(Math.abs(u - 0.32), 1 - Math.abs(u - 0.32))
+      const hot = Math.exp(-(dx * dx) / 0.006) * Math.exp(-((t - 0.3) ** 2) / 0.05)
+      r += key[0] * hot * 1.5
+      g += key[1] * hot * 1.5
+      b += key[2] * hot * 1.5
+
+      const i = (y * W + x) * 4
+      data[i] = Math.min(255, r * 255)
+      data[i + 1] = Math.min(255, g * 255)
+      data[i + 2] = Math.min(255, b * 255)
+      data[i + 3] = 255
+    }
+  }
+
+  const tex = new THREE.DataTexture(data, W, H, THREE.RGBAFormat)
+  tex.mapping = THREE.EquirectangularReflectionMapping
+  tex.colorSpace = THREE.SRGBColorSpace
+  tex.needsUpdate = true
+  return tex
+}
+
+function StudioEnvironment({ intensity = 0.55 }) {
+  const { gl, scene } = useThree()
+
+  useEffect(() => {
+    const src = buildEnvTexture()
+    const pmrem = new THREE.PMREMGenerator(gl)
+    const env = pmrem.fromEquirectangular(src)
+    scene.environment = env.texture
+    if ('environmentIntensity' in scene) scene.environmentIntensity = intensity
+
+    return () => {
+      scene.environment = null
+      env.texture.dispose()
+      pmrem.dispose()
+      src.dispose()
+    }
+  }, [gl, scene, intensity])
+
+  return null
+}
+
 function Lights() {
   return (
     <>
@@ -168,6 +246,7 @@ function Lights() {
       {/* warm bounce so the underside and gear are not dead black */}
       <directionalLight position={[1, -5, 2]} intensity={0.55} color="#c9a24b" />
       <hemisphereLight args={['#3d4744', '#0a1610', 0.26]} />
+      <StudioEnvironment intensity={0.55} />
     </>
   )
 }
