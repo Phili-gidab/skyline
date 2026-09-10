@@ -134,12 +134,15 @@ export default function Nav({ ready }) {
         </div>
         <div className="menu__foot">
           <span className="label">Get in touch</span>
-          <a href={`tel:${BRAND.phones[0].replace(/\s/g, '')}`}>{BRAND.phones[0]}</a>
+          <a href={BRAND.whatsappUrl} target="_blank" rel="noreferrer">
+            WhatsApp {BRAND.whatsapp}
+          </a>
+          <a href={`tel:${BRAND.phones[0].tel}`}>{BRAND.phones[0].display}</a>
           <a href={BRAND.telegramUrl} target="_blank" rel="noreferrer">
             @{BRAND.telegram}
           </a>
           <span className="label" style={{ marginTop: '0.75rem' }}>
-            {BRAND.address}
+            {BRAND.address} — {BRAND.landmark}
           </span>
         </div>
       </div>

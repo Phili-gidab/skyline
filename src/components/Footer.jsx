@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import gsap from 'gsap'
-import { BRAND, NAV } from '../data/site'
+import { BRAND, NAV, NOTICE } from '../data/site'
 import { scrollTo } from '../lib/smooth'
 import Logo from './Logo'
 
@@ -81,6 +81,11 @@ export default function Footer() {
                 </a>
               </li>
             ))}
+            <li>
+              <a href={BRAND.catalogueUrl} download data-cursor="PDF">
+                Service catalogue (PDF)
+              </a>
+            </li>
           </ul>
         </nav>
 
@@ -91,15 +96,16 @@ export default function Footer() {
               <span className="footer__plain">{BRAND.address}</span>
             </li>
             <li>
+              <span className="footer__plain">{BRAND.landmark}</span>
+            </li>
+            <li>
               <span className="footer__plain">
                 {BRAND.city}, {BRAND.country}
               </span>
             </li>
             <li>
               <a
-                href={`https://www.google.com/maps/search/${encodeURIComponent(
-                  `${BRAND.address}, ${BRAND.city}`
-                )}`}
+                href={`https://www.google.com/maps/search/${encodeURIComponent(BRAND.mapsQuery)}`}
                 target="_blank"
                 rel="noreferrer"
                 data-cursor="Map"
@@ -114,17 +120,19 @@ export default function Footer() {
           <h4 className="footer__h">Talk to us</h4>
           <ul className="footer__list">
             {BRAND.phones.map((p) => (
-              <li key={p}>
-                <a href={`tel:${p.replace(/\s/g, '')}`}>{p}</a>
+              <li key={p.tel}>
+                <a href={`tel:${p.tel}`}>{p.display}</a>
               </li>
             ))}
+            <li>
+              <a href={BRAND.whatsappUrl} target="_blank" rel="noreferrer" data-cursor="WhatsApp">
+                WhatsApp {BRAND.whatsapp}
+              </a>
+            </li>
             <li>
               <a href={BRAND.telegramUrl} target="_blank" rel="noreferrer" data-cursor="Telegram">
                 @{BRAND.telegram}
               </a>
-            </li>
-            <li>
-              <a href={`mailto:${BRAND.email}`}>{BRAND.email}</a>
             </li>
           </ul>
         </div>
@@ -133,6 +141,8 @@ export default function Footer() {
       <div className="footer__wordmark" ref={mark} aria-hidden="true">
         Skyline
       </div>
+
+      <p className="footer__notice">{NOTICE}</p>
 
       <div className="footer__row">
         <span>
@@ -145,7 +155,9 @@ export default function Footer() {
           <a href={BRAND.instagramUrl} target="_blank" rel="noreferrer">
             Instagram
           </a>
-          <a href={`mailto:${BRAND.email}`}>Email</a>
+          <a href={BRAND.whatsappUrl} target="_blank" rel="noreferrer">
+            WhatsApp
+          </a>
         </span>
         <a className="footer__top-link" href="#top" onClick={toTop} data-cursor="Top">
           Back to top ↑

@@ -3,7 +3,7 @@ import gsap from 'gsap'
 import { BRAND } from '../data/site'
 import Logo from './Logo'
 
-const WORDS = ['Türkiye', 'Italia', 'Nippon', 'France', 'Österreich', 'America', 'Skyline']
+const WORDS = ['Italia', 'Éire', 'Türkiye', 'Canada', 'Brasil', 'México', 'Österreich', 'Skyline']
 
 export default function Preloader({ onDone }) {
   const root = useRef(null)

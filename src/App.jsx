@@ -6,7 +6,7 @@ import Cursor from './components/Cursor'
 import Nav from './components/Nav'
 import Story from './components/Story'
 import Destinations from './components/Destinations'
-import Services from './components/Services'
+import Catalogue from './components/Catalogue'
 import Study from './components/Study'
 import Careers from './components/Careers'
 import Contact from './components/Contact'
@@ -86,7 +86,7 @@ export default function App() {
         {/* content sections sit on an opaque ground, covering the stage */}
         <div className="ground">
           <Destinations />
-          <Services />
+          <Catalogue />
           <Study />
           <Careers />
           <Contact />

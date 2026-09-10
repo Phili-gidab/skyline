@@ -767,12 +767,12 @@ button {
 }
 
 .route {
-  /* four columns on one line: stacking the visa type onto a second row made
-     this panel taller than the viewport on a 900px screen */
+  /* one line per route: stacking the services onto a second row made this
+     panel taller than the viewport on a 900px screen */
   display: grid;
-  /* fixed trailing columns: each row is its own grid, so `auto` sized them
-     independently and the right-hand columns came out ragged */
-  grid-template-columns: auto minmax(0, 1fr) 8.5ch 14ch;
+  /* fixed trailing column: each row is its own grid, so `auto` would size
+     it per row and the right-hand edge would come out ragged */
+  grid-template-columns: auto minmax(0, 1fr) 18ch;
   align-items: baseline;
   gap: 0.2rem 1rem;
   padding: clamp(0.42rem, 1vh, 0.68rem) 0;
@@ -1475,110 +1475,407 @@ button {
 }
 
 /* ============================================================
-   SERVICES — hover list with floating preview
+   SERVICE CATALOGUE — three accordion lines, from the client's PDF
    ============================================================ */
 
-.services {
+.catalogue {
   position: relative;
 }
 
-.svc-list {
+.catalogue__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-bottom: clamp(2.5rem, 6vh, 4rem);
+}
+
+.catalogue__title {
+  font-family: var(--serif);
+  font-size: clamp(2.6rem, 8vw, 7rem);
+  line-height: 0.86;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  margin-top: 1.25rem;
+}
+
+.catalogue__title .word {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+
+.catalogue__title .word > span {
+  display: inline-block;
+}
+
+.catalogue__title .serif-it {
+  color: var(--gold);
+}
+
+.catalogue__mission {
+  max-width: 36ch;
+}
+
+.catalogue__mission p {
+  margin-top: 0.8rem;
+  color: rgba(236, 230, 215, 0.72);
+  font-size: 0.98rem;
+  line-height: 1.6;
+}
+
+.catalogue__pdf {
+  display: inline-flex;
+  margin-top: 1.25rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid currentColor;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+  transition: color 0.35s var(--ease);
+}
+
+.catalogue__pdf:hover {
+  color: var(--signal);
+}
+
+.cat-list {
   border-top: 1px solid var(--rule);
 }
 
-.svc {
-  position: relative;
-  display: grid;
-  grid-template-columns: 5rem 1fr minmax(0, 22ch) 3rem;
-  gap: clamp(1rem, 2vw, 2rem);
-  align-items: center;
-  padding: clamp(1.5rem, 3.4vw, 2.75rem) 0;
+.cat {
   border-bottom: 1px solid var(--rule);
-  cursor: pointer;
-  overflow: hidden;
 }
 
-.svc__fill {
-  position: absolute;
-  inset: 0;
-  background: var(--bone-2);
-  transform: scaleY(0);
-  transform-origin: bottom;
-  transition: transform 0.6s var(--ease);
-  z-index: 0;
+.cat__heading {
+  margin: 0;
+  font: inherit;
 }
 
-.svc:hover .svc__fill {
-  transform: scaleY(1);
-  transform-origin: top;
+.cat__head {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr) auto 2.6rem;
+  align-items: center;
+  gap: clamp(1rem, 2vw, 2rem);
+  padding: clamp(1.4rem, 3vw, 2.4rem) 0;
+  text-align: left;
+  color: inherit;
 }
 
-.svc > *:not(.svc__fill) {
-  position: relative;
-  z-index: 1;
-  transition: color 0.45s var(--ease);
-}
-
-.svc__n {
+.cat__n {
   font-family: var(--mono);
   font-size: 0.7rem;
   letter-spacing: 0.16em;
   color: var(--gold);
+  transition: color 0.4s var(--ease);
 }
 
-.svc__title {
+.cat.is-open .cat__n {
+  color: var(--signal);
+}
+
+.cat__title {
   font-family: var(--serif);
-  font-size: clamp(1.6rem, 4vw, 3.4rem);
+  font-size: clamp(1.7rem, 4.4vw, 3.6rem);
   line-height: 1;
   letter-spacing: -0.025em;
   text-transform: uppercase;
   color: var(--bone-2);
-  transition: transform 0.6s var(--ease), color 0.45s var(--ease);
+  transition: transform 0.6s var(--ease);
 }
 
-.svc:hover .svc__title {
-  transform: translateX(clamp(0.5rem, 1.5vw, 1.5rem));
-  color: var(--ink);
+.cat__head:hover .cat__title,
+.cat.is-open .cat__title {
+  transform: translateX(clamp(0.4rem, 1.2vw, 1.2rem));
 }
 
-.svc:hover .svc__n,
-.svc:hover .svc__body,
-.svc:hover .svc__arrow {
-  color: var(--ink);
-}
-
-.svc__body {
-  font-size: 0.85rem;
-  line-height: 1.55;
-  color: rgba(236, 230, 215, 0.6);
-}
-
-.svc__meta {
-  display: block;
+.cat__where {
+  max-width: 34ch;
+  text-align: right;
   font-family: var(--mono);
-  font-size: 0.6rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  line-height: 1.6;
+  text-transform: uppercase;
+  color: var(--sage);
+}
+
+/* a plus that turns into a minus on a gold disc */
+.cat__toggle {
+  position: relative;
+  justify-self: end;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 50%;
+  transition: background 0.4s var(--ease), border-color 0.4s var(--ease);
+}
+
+.cat__toggle::before,
+.cat__toggle::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 1px;
+  background: var(--bone);
+  transform: translate(-50%, -50%);
+  transition: transform 0.5s var(--ease), background 0.4s var(--ease);
+}
+
+.cat__toggle::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.cat__head:hover .cat__toggle {
+  border-color: var(--gold);
+}
+
+.cat.is-open .cat__toggle {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+.cat.is-open .cat__toggle::before,
+.cat.is-open .cat__toggle::after {
+  background: var(--ink);
+}
+
+.cat.is-open .cat__toggle::after {
+  transform: translate(-50%, -50%) rotate(0deg);
+}
+
+/* Height animates via grid rows, so nothing is measured in JS. */
+.cat__body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.7s var(--ease);
+}
+
+.cat.is-open .cat__body {
+  grid-template-rows: 1fr;
+}
+
+.cat__clip {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cat__inner {
+  padding: 0 0 clamp(2rem, 5vh, 3rem) calc(5rem + clamp(1rem, 2vw, 2rem));
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.45s var(--ease), transform 0.6s var(--ease);
+}
+
+.cat.is-open .cat__inner {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.12s;
+}
+
+.cat__lead {
+  max-width: 62ch;
+  font-size: clamp(1rem, 1.3vw, 1.2rem);
+  line-height: 1.6;
+  color: rgba(236, 230, 215, 0.82);
+}
+
+.cat__cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: clamp(2rem, 5vw, 5rem);
+  margin-top: clamp(1.5rem, 4vh, 2.5rem);
+}
+
+.cat__label {
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--sage);
+}
+
+.cat__items {
+  list-style: none;
+  columns: 2;
+  column-gap: 2.5rem;
+}
+
+.cat__items li {
+  position: relative;
+  break-inside: avoid;
+  padding: 0.42rem 0 0.42rem 1.2rem;
+  font-size: 0.93rem;
+  line-height: 1.45;
+  color: rgba(236, 230, 215, 0.8);
+}
+
+.cat__items li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 1.1em;
+  width: 0.55rem;
+  height: 1px;
+  background: var(--gold);
+}
+
+.cat__chips {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cat__chips li {
+  padding: 0.42rem 0.8rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 100px;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bone);
+}
+
+.cat__note {
+  margin-top: 1rem;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--sage);
+}
+
+.cat__cta {
+  display: inline-flex;
+  margin-top: 1.5rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid currentColor;
+  font-family: var(--mono);
+  font-size: 0.66rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
+  color: var(--signal);
+}
+
+/* ---- additional services ---- */
+
+.extras {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: clamp(2rem, 5vw, 5rem);
+  margin-top: clamp(4rem, 10vh, 7rem);
+  padding-top: clamp(2rem, 5vh, 3rem);
+  border-top: 1px solid var(--rule);
+}
+
+.extras__head p {
+  margin-top: 1rem;
+  max-width: 30ch;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: rgba(236, 230, 215, 0.64);
+}
+
+.extras__list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: clamp(1.5rem, 4vw, 3rem);
+}
+
+.extras__list li {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--serif);
+  font-size: clamp(1.15rem, 1.9vw, 1.6rem);
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  text-transform: uppercase;
+  color: var(--bone-2);
+}
+
+.extras__n {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
   color: var(--gold);
-  margin-top: 0.7rem;
-  transition: color 0.45s var(--ease), transform 0.6s var(--ease);
 }
 
-.svc:hover .svc__meta {
-  color: var(--moss);
-  transform: translateX(clamp(0.5rem, 1.5vw, 1.5rem));
+/* ---- why Skyline ---- */
+
+.why {
+  margin-top: clamp(4rem, 10vh, 7rem);
 }
 
-.svc__arrow {
-  justify-self: end;
-  font-size: 1.4rem;
-  line-height: 1;
+.why__grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: clamp(1.5rem, 4vw, 3.5rem);
+  margin-top: clamp(1.5rem, 4vh, 2.5rem);
+  border-top: 1px solid var(--rule);
+}
+
+.why__item {
+  padding: clamp(1.25rem, 2.5vw, 2rem) 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.why__item h4 {
+  display: flex;
+  gap: 0.6rem;
+  font-family: var(--serif);
+  font-size: clamp(1.2rem, 1.9vw, 1.6rem);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  text-transform: uppercase;
+  color: var(--bone-2);
+}
+
+.why__item h4::before {
+  content: '✓';
+  font-family: var(--sans);
+  font-size: 0.8em;
+  color: var(--gold);
+}
+
+.why__item p {
+  margin-top: 0.55rem;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: rgba(236, 230, 215, 0.64);
+}
+
+/* ---- the catalogue's legal notice ---- */
+
+.notice {
+  max-width: 82ch;
+  margin-top: clamp(3rem, 8vh, 5rem);
+  padding-left: 1rem;
+  border-left: 2px solid var(--gold);
+  font-size: 0.82rem;
+  line-height: 1.65;
   color: var(--sage);
-  transition: transform 0.6s var(--ease), color 0.45s var(--ease);
 }
 
-.svc:hover .svc__arrow {
-  transform: translate(6px, -6px);
+.notice strong {
+  font-weight: 500;
+  color: var(--bone);
 }
 
 /* ============================================================
@@ -2156,8 +2453,6 @@ button {
   .process__sticky { position: static; }
   .study__grid { grid-template-columns: 1fr; }
   .contact__row { grid-template-columns: repeat(2, 1fr); row-gap: 2.5rem; }
-  .svc { grid-template-columns: 3.5rem 1fr 3rem; }
-  .svc__body { display: none; }
 }
 
 @media (max-width: 1080px) {
@@ -2189,8 +2484,6 @@ button {
   .contact__row { grid-template-columns: 1fr; }
   .stats { grid-template-columns: 1fr; }
   .stat { border-right: 0; }
-  .svc { grid-template-columns: 2.75rem 1fr; }
-  .svc__arrow { display: none; }
   .preloader__bottom { flex-direction: column; align-items: flex-start; gap: 1rem; }
 }
 
@@ -2306,8 +2599,9 @@ button {
     opacity: 1;
   }
 
-  .svc__body {
-    display: block;
+  .card__points {
+    max-height: 10em;
+    opacity: 1;
   }
 }
 
@@ -2331,7 +2625,7 @@ button {
    link would otherwise land underneath it. */
 .panel,
 .dest,
-.services,
+.catalogue,
 .study,
 .careers,
 .contact {
@@ -2489,4 +2783,118 @@ button {
   .footer__social {
     gap: 1rem;
   }
+}
+
+/* ============================================================
+   CATALOGUE UPDATE — cards, contact, footer, responsive
+   ============================================================ */
+
+.card__points {
+  list-style: none;
+  margin-top: 0.9rem;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.7s var(--ease), opacity 0.5s var(--ease);
+}
+
+.card:hover .card__points {
+  max-height: 10em;
+  opacity: 1;
+}
+
+.card__points li {
+  position: relative;
+  padding: 0.32rem 0 0.32rem 0.95rem;
+  border-top: 1px solid rgba(236, 230, 215, 0.12);
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  color: var(--bone);
+}
+
+.card__points li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 0.45rem;
+  height: 1px;
+  background: var(--gold);
+}
+
+.contact__alt {
+  display: inline-flex;
+  margin-top: 1.25rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid currentColor;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--signal);
+}
+
+.footer__notice {
+  max-width: 92ch;
+  margin: 0 0 clamp(1.25rem, 3vh, 2rem);
+  font-size: 0.74rem;
+  line-height: 1.6;
+  color: var(--sage);
+}
+
+@media (max-width: 1080px) {
+  .cat__head {
+    grid-template-columns: 3.5rem minmax(0, 1fr) 2.6rem;
+    row-gap: 0.6rem;
+  }
+
+  .cat__n { grid-column: 1; grid-row: 1; }
+  .cat__title { grid-column: 2; grid-row: 1; }
+  .cat__toggle { grid-column: 3; grid-row: 1 / span 2; }
+
+  .cat__where {
+    grid-column: 2;
+    grid-row: 2;
+    text-align: left;
+    max-width: none;
+  }
+
+  .cat__inner { padding-left: 0; }
+  .cat__cols { grid-template-columns: 1fr; }
+  .extras { grid-template-columns: 1fr; }
+  .why__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 860px) {
+  .card__points {
+    max-height: 10em;
+    opacity: 1;
+  }
+}
+
+@media (max-width: 600px) {
+  .cat__head { grid-template-columns: 2.4rem minmax(0, 1fr) 2.4rem; }
+  .cat__toggle { width: 2.4rem; height: 2.4rem; }
+  .cat__items { columns: 1; }
+  .extras__list { grid-template-columns: 1fr; }
+  .why__grid { grid-template-columns: 1fr; }
+}
+
+/* Ten routes and six steps: on a 720px-tall laptop the routes and process
+   panels still ran 70-90px past one viewport, which pushes their copy up
+   under the nav and into the neighbouring panel's crossfade. */
+@media (max-height: 780px) and (min-width: 861px) {
+  .panel__title { font-size: clamp(1.8rem, 3.6vw, 2.6rem); }
+  .panel__head { margin-bottom: 0.9rem; }
+  .panel__body { margin-top: 0.7rem; font-size: 0.9rem; }
+  .routes,
+  .stages { margin-top: 0.9rem; }
+  .route { padding-block: 0.24rem; }
+  .route__city { font-size: 1.05rem; line-height: 1.2; }
+  .stage-row { padding-block: 0.34rem; }
+  .stage-row__title { font-size: 1.15rem; }
+  .stage-row__body { margin-top: 0.2rem; font-size: 0.78rem; }
 }

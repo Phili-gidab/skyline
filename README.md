@@ -180,11 +180,11 @@ Film grain, a vignette and a difference-blend cursor sit above everything as fix
 | --- | --- |
 | 01 Hero | Wordmark, standfirst, live Addis clock, split-flap departure board |
 | 02 Capabilities | Turnaround times as spec readouts |
-| 03 Routes | Six desks as an IATA route list |
-| 04 Process | Four stages |
+| 03 Routes | The ten destinations as an IATA route list |
+| 04 Process | The catalogue's six steps |
 | 05 Numbers | Headline statistics |
 
-**On the ground, below:** Destinations (pinned horizontal gallery), Services, Study (inverted cream
+**On the ground, below:** Destinations (pinned horizontal gallery), Service catalogue (accordion, from the client's PDF), Study (inverted cream
 section with the Post University tables), Careers, Contact, Footer.
 
 The split-flap board ([SplitFlap.jsx](src/components/SplitFlap.jsx)) is a Solari display: each cell
@@ -244,23 +244,41 @@ JS-toggled class, which left the bar briefly unreadable mid-scroll.
 ## Editing content
 
 Nearly all copy lives in [src/data/site.js](src/data/site.js) — contact details, destinations with
-IATA codes, services, process steps, stats, scholarship tables and open roles.
+IATA codes, the service catalogue, process steps, stats, scholarship tables and open roles.
+
+The client's service catalogue is the source of truth for services, destinations, process and
+contact details. The PDF itself is served at `/skyline-service-catalogue.pdf` and linked from the
+catalogue section and the footer; replace that file when they issue a new edition.
 
 ## Before this goes live
 
-Items taken from the flyers that need the client to confirm them:
+**Resolved by the client's service catalogue (received 2026-09-10):** the phone numbers, the office
+address, and which tagline is current — it is "You Belong Everywhere", now used site-wide. "Your
+Journey, Our Priority" from the earlier flyers is retired. Japan and France were flyer desks the
+catalogue does not list, so they are gone.
 
-1. **Email spelling.** The flyers show both `managmentskyline@gmail.com` and
-   `managementskyline@gmail.com`. The site currently uses `managmentskyline@gmail.com`.
-2. **Phone numbers.** The hiring flyer lists `+251 986 975 570` / `+251 988 866 060`, which differ
-   from the numbers on the visa flyers. Only the visa-flyer numbers are on the site.
-3. **Office hours** are a placeholder — see the `TODO` in
+Still open:
+
+1. **Study section.** It presents Post University in Connecticut with a Fall 2026 intake. The
+   catalogue's study destinations are Italy, Austria, Hungary and China; the USA appears only as a
+   visit destination. Confirm the partnership is still live, and note that Fall 2026 is now current.
+2. **Hungary** is a study destination in the catalogue but was not in the destinations list sent with
+   it. It appears in the catalogue section only, not in the destination gallery or route list.
+3. **Processing times** (45 days for Turkey and Italy work visas, 60 days for Schengen visits) and the
+   no-prepayment terms come from the flyers. The catalogue gives neither — confirm they still hold.
+4. **Email spelling.** The flyers show both `managmentskyline@gmail.com` and
+   `managementskyline@gmail.com`. The catalogue lists no email at all, so it now appears only on the
+   Careers section, as the CV inbox.
+5. **Office hours** are a placeholder — see the `TODO` in
    [src/components/Contact.jsx](src/components/Contact.jsx).
-4. **The `500+` stat** is derived from the flyer's "hundreds of successful visas". Confirm or replace.
-5. **Destination photography** is placeholder Unsplash imagery, hot-linked. Replace with licensed or
-   owned photography before launch; cards fall back to a gradient if an image fails to load.
-6. The flyers' "100% success rate" claim is deliberately **not** repeated on the site — it is the kind
-   of guarantee that invites consumer-protection trouble. "High success rate" is used instead.
-7. **Model attribution.** The aircraft is CC BY 4.0, which requires crediting the author. The
-   client has opted to do this on social media rather than on the site. If that ever lapses, the
-   simplest fix is a credit line in the footer or an about/colophon page.
+6. **The `500+` stat** is derived from the flyer's "hundreds of successful visas". Confirm or replace.
+7. **Destination photography** is hot-linked Unsplash imagery (Armenia is from Pexels, because none of
+   the Unsplash candidates actually showed Armenia). Replace with owned or licensed photography
+   before launch. Captions name where each photo was taken — Ireland is Cobh, Brazil is Rio — while
+   the route badge is the country's gateway airport.
+8. **Insurance.** The additional-services list carried both "Travel insurance" and "Insurance"; only
+   the first is shown. If the second meant something different, add it to `EXTRA_SERVICES`.
+9. The flyers' "100% success rate" claim is deliberately **not** repeated. The catalogue's own
+   notice — shown in the catalogue section and the footer — says outcomes cannot be guaranteed.
+10. **The logo is a trace** from a low-resolution raster, not the original artwork. Ask the client's
+    designer for the source vector.

@@ -3,7 +3,7 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import SplitFlap from './SplitFlap.jsx'
 import { stage, BEATS } from '../stage3d/choreography.js'
-import { BRAND, DESTINATIONS, PROCESS, STATS } from '../data/site'
+import { BRAND, DESTINATIONS, PROCESS, STATS, countWord } from '../data/site'
 
 const BOARD_INTERVAL = 4200
 
@@ -223,7 +223,7 @@ export default function Story({ ready }) {
               <SplitFlap value={d.board} length={9} />
             </span>
             <span className="hero__board-kind">{d.kind}</span>
-            <span className="hero__board-time">{d.duration}</span>
+            <span className="hero__board-time">{d.country}</span>
             <span className="hero__board-status">
               <i />
               Open
@@ -256,9 +256,9 @@ export default function Story({ ready }) {
           </p>
 
           <div className="specs">
-            <Spec value="45" unit=" days" label="Türkiye and Italy work visa" />
-            <Spec value="20" unit=" days" label="Japan visitor package" />
+            <Spec value="45" unit=" days" label="Turkey and Italy work visa" />
             <Spec value="60" unit=" days" label="Schengen visit visa" />
+            <Spec value={String(DESTINATIONS.length)} label="Destinations, three service lines" />
             <Spec value="0" unit=" birr" label="Payable before approval" />
           </div>
         </div>
@@ -269,7 +269,7 @@ export default function Story({ ready }) {
         <div className="panel__inner">
           <PanelHead index="03" eyebrow="Open desks" />
           <h2 className="panel__title">
-            Six live
+            {countWord(DESTINATIONS.length)} live
             <br />
             <em>routes</em>
           </h2>
@@ -284,8 +284,7 @@ export default function Story({ ready }) {
                   ADD <i>→</i> {r.iata}
                 </span>
                 <span className="route__city">{r.board}</span>
-                <span className="route__time">{r.duration}</span>
-                <span className="route__kind">{r.kind}</span>
+                <span className="route__kind">{r.services.join(' · ')}</span>
               </div>
             ))}
           </div>
@@ -297,13 +296,13 @@ export default function Story({ ready }) {
         <div className="panel__inner">
           <PanelHead index="04" eyebrow="How it runs" />
           <h2 className="panel__title">
-            Four
+            {countWord(PROCESS.length)}
             <br />
-            <em>stages</em>
+            <em>steps</em>
           </h2>
           <p className="panel__body">
-            No stage is skipped, and none is charged for in advance. If a route is not realistic for
-            your profile, you hear it at stage one — not at stage three.
+            No step is skipped, and none is charged for in advance. If a route is not realistic for
+            your profile, you hear it at the assessment, not after the application.
           </p>
 
           <div className="stages">

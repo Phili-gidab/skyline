@@ -1,210 +1,368 @@
+/**
+ * Site content.
+ *
+ * Source of truth, in order of precedence:
+ *   1. The client's service catalogue (public/skyline-service-catalogue.pdf,
+ *      received 2026-09-10) and the contact block they sent with it.
+ *   2. Their earlier Telegram/Instagram flyers, for anything the catalogue
+ *      does not cover — the processing times and the no-prepayment terms.
+ */
+
 export const BRAND = {
   name: 'Skyline Travel Solution',
   short: 'Skyline',
-  tagline: 'Your Journey, Our Priority',
-  // the tagline set inside the logo artwork; see README for the two-tagline note
+  tagline: 'You Belong Everywhere',
+  // the tagline as set inside the logo artwork
   logoTagline: 'You belong Everywhere!',
+  mission:
+    'To provide professional, transparent and client-focused support for international study, work and travel opportunities.',
   city: 'Addis Ababa',
   country: 'Ethiopia',
-  address: '22 Bole Road, Bihul Building, 9th Floor',
+  address: '22 Bole Road, Bimmer, Office 704',
+  landmark: 'In front of Awaris Hotel',
+  mapsQuery: '22 Bole Road, Awaris Hotel, Addis Ababa',
   timezone: 'Africa/Addis_Ababa',
   telegram: 'SKYLINE_TRAVEL_SOLUTION',
   telegramUrl: 'https://t.me/SKYLINE_TRAVEL_SOLUTION',
+  whatsapp: '+251 921 470 395',
+  whatsappUrl: 'https://wa.me/251921470395',
   instagram: 'skyline.travel.so',
   instagramUrl: 'https://instagram.com/skyline.travel.so',
+  // the careers inbox, from the hiring flyer — not part of the public contact block
   email: 'managmentskyline@gmail.com',
-  phones: ['+251 921 470 395', '+251 984 975 570', '+251 11 666 2806'],
+  phones: [
+    { display: '011 666 2806', tel: '+251116662806' },
+    { display: '098 497 5570', tel: '+251984975570' },
+    { display: '098 886 6060', tel: '+251988866060' },
+  ],
+  catalogueUrl: '/skyline-service-catalogue.pdf',
 }
 
-// Great-circle arc endpoints rendered on the hero globe.
-export const ORIGIN = { name: 'Addis Ababa', lat: 8.98, lon: 38.76 }
+/** A WhatsApp link that opens with a message already typed. */
+export const whatsappLink = (text) => `${BRAND.whatsappUrl}?text=${encodeURIComponent(text)}`
 
-export const DESTINATIONS = [
-  {
-    id: 'turkey',
-    iata: 'IST',
-    board: 'ISTANBUL',
-    index: '01',
-    country: 'Türkiye',
-    city: 'Istanbul',
-    lat: 41.01,
-    lon: 28.98,
-    kind: 'Work Visa',
-    duration: '45 days',
-    note: 'Exclusively for female applicants',
-    blurb:
-      'A legally protected work placement with high demand for female workers, strong benefits and a route to long-term career growth.',
-    points: [
-      'Only for female applicants',
-      'Pay after visa approval',
-      'Legal contract and protection',
-      'Limited seats per intake',
-    ],
-    photo: 'https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?w=1400&q=80&auto=format&fit=crop',
-  },
+const NUMBER_WORDS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve']
+
+/** 10 -> "Ten", for headings that count something in this file. */
+export const countWord = (n) => NUMBER_WORDS[n] ?? String(n)
+
+/* ----------------------------------------------------------------------
+   Destinations, in the order the client listed them.
+
+   iata / board — the country's main gateway airport. It is the "route" on
+   the departure board and the card badge.
+   city — where the card's photograph was taken, so the caption is always
+   true to the picture. Every photo was checked by eye, not just for a 200.
+   ---------------------------------------------------------------------- */
+
+const photo = (id) => `https://images.unsplash.com/${id}?w=1400&q=80&auto=format&fit=crop`
+
+const SERVICE_WORD = { Study: 'study', Work: 'work', Visit: 'visit' }
+
+function kindOf(services) {
+  if (services.length === 1) return services[0] === 'Study' ? 'Student visa' : `${services[0]} visa`
+  const words = services.map((s) => SERVICE_WORD[s])
+  const list =
+    words.length === 2 ? words.join(' and ') : `${words.slice(0, -1).join(', ')} and ${words.at(-1)}`
+  return `${list[0].toUpperCase()}${list.slice(1)} visas`
+}
+
+const DESTINATION_LIST = [
   {
     id: 'italy',
+    country: 'Italy / Schengen',
+    city: 'Rome',
     iata: 'FCO',
     board: 'ROMA',
-    index: '02',
-    country: 'Italy',
-    city: 'Rome',
-    lat: 41.9,
-    lon: 12.5,
-    kind: 'Work Visa',
-    duration: '45 days',
-    note: 'Decreto Flussi pathway',
+    services: ['Study', 'Work', 'Visit'],
     blurb:
-      'Build your future in Italy. Expert guidance from document preparation to departure, with complete support until you fly.',
+      'The one desk that runs all three service lines: university admission, employer-sponsored work permits and Schengen visit visas.',
     points: [
-      'Expert visa guidance',
-      'Complete support until you fly',
-      'Pay after visa approval',
-      'Fully transparent process',
+      'Admission and CIMEA / DOV guidance',
+      'Work permit application guidance',
+      'Schengen visit visa files',
+      'Embassy and VFS appointments',
     ],
-    photo: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=1400&q=80&auto=format&fit=crop',
+    photo: photo('photo-1552832230-c0197dd311b5'),
   },
   {
-    id: 'schengen',
-    iata: 'VIE',
-    board: 'WIEN',
-    index: '03',
-    country: 'Schengen',
-    city: 'Rome / Vienna',
-    lat: 48.21,
-    lon: 16.37,
-    kind: 'Visit Visa',
-    duration: '60 days',
-    note: 'Italy and Austria specialists',
+    id: 'ireland',
+    country: 'Ireland',
+    city: 'Cobh, County Cork',
+    iata: 'DUB',
+    board: 'DUBLIN',
+    services: ['Visit'],
     blurb:
-      'Short-stay Schengen visit visas prepared, reviewed and lodged by consultants who submit these files every week.',
-    points: ['Full file preparation', 'Appointment booking', 'Interview coaching', 'No prepayment'],
-    photo: 'https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=1400&q=80&auto=format&fit=crop',
-  },
-  {
-    id: 'japan',
-    iata: 'NRT',
-    board: 'TOKYO',
-    index: '04',
-    country: 'Japan',
-    city: 'Tokyo',
-    lat: 35.68,
-    lon: 139.69,
-    kind: 'Visitor Visa',
-    duration: '20 days',
-    note: 'Full package',
-    blurb:
-      'Our fastest package. Bring a passport and a photograph, and we assemble, translate and submit everything else.',
+      'Visit visas for tourism, family visits, business and events, built from a personalised checklist and reviewed before lodging.',
     points: [
-      'Requirements: passport and photo',
-      'Itinerary and cover letter written for you',
-      'Easy and fast process',
-      'No prepayment',
+      'Personalised document checklist',
+      'Invitation-letter guidance',
+      'Financial-document review',
+      'Cover letter preparation',
     ],
-    photo: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1400&q=80&auto=format&fit=crop',
+    photo: photo('photo-1590089415225-401ed6f9db8e'),
   },
   {
-    id: 'france',
-    iata: 'CDG',
-    board: 'PARIS',
-    index: '05',
-    country: 'France',
-    city: 'Paris',
-    lat: 48.86,
-    lon: 2.35,
-    kind: 'Freelance Visa',
-    duration: '90 days',
-    note: 'Blocked-account route',
+    id: 'armenia',
+    country: 'Armenia',
+    city: 'Yerevan',
+    iata: 'EVN',
+    board: 'YEREVAN',
+    services: ['Visit'],
     blurb:
-      'The French freelance and self-employment route, arranged end to end. Funds held in a blocked account, fees settled after the visa.',
-    points: ['Blocked account arranged', 'Paid after visa approval', 'Business plan support', 'Within 90 days'],
-    photo: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1400&q=80&auto=format&fit=crop',
+      'Visit visa applications prepared from the application form to the travel itinerary, and organised into one complete file.',
+    points: [
+      'Application form guidance',
+      'Flight itinerary guidance',
+      'Accommodation documentation',
+      'Application file organisation',
+    ],
+    // Pexels (free for commercial use), not Unsplash — none of the Unsplash
+    // candidates for Armenia actually showed Armenia
+    photo: 'https://images.pexels.com/photos/30454809/pexels-photo-30454809.jpeg?auto=compress&cs=tinysrgb&w=1400',
+  },
+  {
+    id: 'turkey',
+    country: 'Turkey',
+    city: 'Istanbul',
+    iata: 'IST',
+    board: 'ISTANBUL',
+    services: ['Work', 'Visit'],
+    blurb:
+      'Employer-sponsored work permits and visit visas. Work availability depends on current immigration rules and employer sponsorship.',
+    points: [
+      'Work eligibility guidance',
+      'Employer and document review',
+      'Visit visa preparation',
+      'Pre-departure preparation',
+    ],
+    photo: photo('photo-1541432901042-2d8bd64b4a9b'),
+  },
+  {
+    id: 'canada',
+    country: 'Canada',
+    city: 'Toronto',
+    iata: 'YYZ',
+    board: 'TORONTO',
+    services: ['Visit'],
+    blurb:
+      'Visit visas for tourism, family visits and business trips, with financial documents reviewed and the file organised before your appointment.',
+    points: [
+      'Visa eligibility assessment',
+      'Financial-document review',
+      'Travel insurance guidance',
+      'Embassy / VFS appointments',
+    ],
+    photo: photo('photo-1517090504586-fde19ea6066f'),
   },
   {
     id: 'usa',
-    iata: 'BDL',
-    board: 'HARTFORD',
-    index: '06',
     country: 'United States',
-    city: 'Connecticut',
-    lat: 41.6,
-    lon: -72.7,
-    kind: 'Study Abroad',
-    duration: 'Fall 2026',
-    note: 'Post University partnership',
+    city: 'New York',
+    iata: 'JFK',
+    board: 'NEW YORK',
+    services: ['Visit'],
     blurb:
-      'Direct admission with scholarships up to $25,000, no application fee and no I-20 fee. Open intake for Fall 2026.',
-    points: ['No application fee', 'No I-20 fee', 'SEVIS fee credit', 'Scholarships up to $25,000'],
-    photo: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1400&q=80&auto=format&fit=crop',
+      'Visit visa preparation for tourism, family visits, business and events: application form guidance, a cover letter and an organised file.',
+    points: [
+      'Application form preparation',
+      'Cover letter preparation',
+      'Financial-document review',
+      'Embassy appointment guidance',
+    ],
+    photo: photo('photo-1485871981521-5b1fd3805eee'),
+  },
+  {
+    id: 'brazil',
+    country: 'Brazil',
+    city: 'Rio de Janeiro',
+    iata: 'GRU',
+    board: 'SAO PAULO',
+    services: ['Visit'],
+    blurb:
+      'Visit visas for holidays, family visits and events, with itinerary, accommodation and insurance documents prepared alongside the application.',
+    points: [
+      'Flight itinerary guidance',
+      'Accommodation documentation',
+      'Travel insurance guidance',
+      'Travel preparation',
+    ],
+    photo: photo('photo-1483729558449-99ef09a8c325'),
+  },
+  {
+    id: 'mexico',
+    country: 'Mexico',
+    city: 'Mexico City',
+    iata: 'MEX',
+    board: 'MEXICO',
+    services: ['Visit'],
+    blurb:
+      'Tourist and business visit visas, prepared from a personalised checklist and organised into a complete application file.',
+    points: [
+      'Personalised document checklist',
+      'Invitation-letter guidance',
+      'Cover letter preparation',
+      'Application file organisation',
+    ],
+    photo: photo('photo-1585464231875-d9ef1f5ad396'),
+  },
+  {
+    id: 'austria',
+    country: 'Austria',
+    city: 'Vienna',
+    iata: 'VIE',
+    board: 'WIEN',
+    services: ['Study'],
+    blurb:
+      'University and course selection, admission applications and scholarship guidance, through to the visa file and pre-departure.',
+    points: [
+      'University and course selection',
+      'Admission application support',
+      'Motivation letter and CV support',
+      'Pre-enrollment guidance',
+    ],
+    photo: photo('photo-1516550893923-42d28e5677af'),
+  },
+  {
+    id: 'china',
+    country: 'China',
+    city: 'Beijing',
+    iata: 'PEK',
+    board: 'BEIJING',
+    services: ['Study'],
+    blurb:
+      'Study applications from eligibility assessment to online portal submission, with scholarship guidance and a prepared visa file.',
+    points: [
+      'Eligibility assessment',
+      'Scholarship application guidance',
+      'Online application portal',
+      'Embassy appointment guidance',
+    ],
+    photo: photo('photo-1547981609-4b6bfe67ca0b'),
   },
 ]
 
-export const SERVICES = [
+export const DESTINATIONS = DESTINATION_LIST.map((d, i) => ({
+  ...d,
+  index: String(i + 1).padStart(2, '0'),
+  kind: kindOf(d.services),
+}))
+
+/* ----------------------------------------------------------------------
+   Service catalogue — the three lines, verbatim from the client's PDF
+   (spelling normalised to the rest of the site)
+   ---------------------------------------------------------------------- */
+
+export const CATALOGUE = [
   {
+    id: 'student',
     n: '01',
-    title: 'Work Visas',
-    meta: 'Türkiye / Italy',
-    body: 'Legally protected placements with vetted employers. We handle the contract, the dossier and the appointment. You pay once the visa is approved.',
+    title: 'Student Visas',
+    ask: 'student visas',
+    lead: 'We support students throughout the international study application process, from initial eligibility assessment to pre-departure preparation.',
+    includes: [
+      'University and course selection guidance',
+      'Eligibility assessment',
+      'University admission application support',
+      'Scholarship application guidance',
+      'Document preparation and review',
+      'Statement of Purpose / Motivation Letter support',
+      'CV preparation',
+      'Online application portal assistance',
+      'Pre-enrollment guidance',
+      'CIMEA / DOV guidance where applicable',
+      'Embassy appointment and visa-file preparation guidance',
+      'Pre-departure travel guidance',
+    ],
+    destinations: ['Italy', 'Austria', 'Hungary', 'China'],
+    note: 'Additional destinations may be available depending on the program, intake and applicant profile.',
   },
   {
+    id: 'work',
     n: '02',
-    title: 'Schengen Visit Visas',
-    meta: 'Italy / Austria / Europe',
-    body: 'Short-stay applications built the way consulates want to read them: complete, consistent and evidenced. Appointment booking and interview coaching included.',
+    title: 'Work Visas & Permits',
+    ask: 'work visas',
+    lead: 'We assist eligible applicants with understanding and preparing for employer-sponsored work and work-permit processes.',
+    includes: [
+      'Work opportunity and eligibility guidance',
+      'Employer and document review guidance',
+      'Work permit application process guidance',
+      'Work visa document preparation support',
+      'Application review',
+      'Embassy / Visa Application Centre guidance',
+      'Appointment assistance where available',
+      'Travel and pre-departure preparation',
+    ],
+    destinations: ['Italy', 'Turkey'],
+    note: 'Availability depends on current immigration rules, employer sponsorship and applicant eligibility.',
   },
   {
+    id: 'visit',
     n: '03',
-    title: 'Study Abroad',
-    meta: 'United States',
-    body: 'University selection, admission, scholarship negotiation, I-20 issuance and F-1 interview preparation, through to your first day on campus.',
-  },
-  {
-    n: '04',
-    title: 'Visitor and Tourist Visas',
-    meta: 'Japan / Global',
-    body: 'Full visitor packages assembled from a passport and a photo. Itineraries, cover letters, bookings and financial evidence prepared in-house.',
-  },
-  {
-    n: '05',
-    title: 'Freelance and Self-Employment',
-    meta: 'France',
-    body: 'The blocked-account route for independent professionals, arranged end to end: from business plan to bank confirmation to lodgement.',
-  },
-  {
-    n: '06',
-    title: 'Ticketing and Departure',
-    meta: 'Worldwide',
-    body: 'Flights, insurance, airport transfer and pre-departure briefing. The last mile of the journey, handled by the team that started it.',
+    title: 'Visit & Tourist Visas',
+    ask: 'visit visas',
+    lead: 'Travel for tourism, family visits, business visits, events and holidays with professional application preparation support.',
+    includes: [
+      'Visa eligibility assessment',
+      'Personalised document checklist',
+      'Application form guidance and preparation',
+      'Invitation-letter guidance where applicable',
+      'Accommodation and travel documentation guidance',
+      'Flight itinerary guidance',
+      'Travel insurance guidance',
+      'Financial-document review',
+      'Cover letter preparation support',
+      'Embassy / VFS appointment guidance',
+      'Application file organisation',
+      'Travel preparation guidance',
+    ],
+    destinations: ['Italy / Schengen', 'Ireland', 'Armenia', 'Turkey', 'Canada', 'USA', 'Brazil', 'Mexico'],
+    note: 'And other available destinations, subject to requirements and eligibility.',
   },
 ]
 
+/* From the client's additional-services list. Their list carried both
+   "Travel insurance" and a bare "Insurance"; they read as a duplicate on the
+   page, so only the first is kept. */
+export const EXTRA_SERVICES = [
+  'Flight booking',
+  'Hotel and accommodation arrangements',
+  'Travel itinerary planning',
+  'Travel insurance',
+  'Document preparation',
+  'Pre-departure consultation',
+  'Airport and travel guidance',
+]
+
+export const WHY = [
+  { title: 'Personalised consultation', body: 'Guidance based on your travel, study or work goal.' },
+  { title: 'Document support', body: 'Careful review and organisation of the required application documents.' },
+  { title: 'Application guidance', body: 'Support through the relevant application stages and procedures.' },
+  { title: 'Client-focused service', body: 'Clear communication and professional support throughout the process.' },
+  { title: 'Pre-departure support', body: 'Travel preparation and practical guidance before departure.' },
+  { title: 'Multiple service areas', body: 'Student, work and visit visa support under one company.' },
+]
+
+/* Verbatim from the catalogue. It is the legal counterweight to every
+   timing and "no prepayment" line on the site, so it is shown in the
+   catalogue section and again in the footer. */
+export const NOTICE =
+  'Visa approval, admission, scholarships, work permits and immigration decisions are made solely by the relevant institutions and government authorities. Skyline Travel Solution provides professional guidance and application support but cannot guarantee approval or a specific outcome.'
+
+/* The catalogue's six-step service process. */
 export const PROCESS = [
-  {
-    n: '01',
-    title: 'Consultation',
-    body: 'A free sit-down at Bole, or a call on Telegram. We tell you which routes are genuinely open to you.',
-  },
-  {
-    n: '02',
-    title: 'File Preparation',
-    body: 'Collected, translated, notarised and assembled to the standard of the consulate that will read it.',
-  },
-  {
-    n: '03',
-    title: 'Submission and Tracking',
-    body: 'Appointment booked, biometrics attended, application lodged. A status update at every stage.',
-  },
-  {
-    n: '04',
-    title: 'Approval and Departure',
-    body: 'Visa collected, fee settled, ticket issued. We brief you before you fly, and stay reachable after.',
-  },
+  { n: '01', title: 'Consultation', body: 'We start by understanding your goal: study, work or travel.' },
+  { n: '02', title: 'Assessment', body: 'Your eligibility for the route is reviewed before anything is prepared.' },
+  { n: '03', title: 'Preparation', body: 'Documents are gathered, reviewed and organised into a complete file.' },
+  { n: '04', title: 'Application', body: 'The application is prepared and submitted, as applicable.' },
+  { n: '05', title: 'Visa process', body: 'We follow the relevant embassy or VFS procedure with you.' },
+  { n: '06', title: 'Departure', body: 'Travel preparation and practical guidance before you fly.' },
 ]
 
 export const STATS = [
   { value: 500, suffix: '+', label: 'Successful visas issued' },
-  { value: 20, suffix: ' days', label: 'Fastest package turnaround' },
-  { value: 6, suffix: '', label: 'Active destination desks' },
+  { value: DESTINATIONS.length, suffix: '', label: 'Destinations' },
+  { value: CATALOGUE.length, suffix: '', label: 'Service lines: study, work, visit' },
   { value: 0, suffix: ' birr', label: 'Payable before approval' },
 ]
 

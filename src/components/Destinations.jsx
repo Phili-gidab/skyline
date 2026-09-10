@@ -1,28 +1,28 @@
 import React, { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { DESTINATIONS } from '../data/site'
+import { DESTINATIONS, countWord } from '../data/site'
 
 function Card({ d }) {
-  const media = useRef(null)
-
   return (
     <article className="card" data-cursor={d.kind}>
-      <div className="card__media" ref={media}>
-        <img
-          src={d.photo}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none'
-          }}
-        />
+      <div className="card__media">
+        {d.photo && (
+          <img
+            src={d.photo}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none'
+            }}
+          />
+        )}
       </div>
       <div className="card__scrim" />
 
       <span className="card__index">{d.index}</span>
-      <span className="card__badge">{d.duration}</span>
+      <span className="card__badge">ADD → {d.iata}</span>
 
       <div>
         <div className="card__city">{d.city}</div>
@@ -31,10 +31,11 @@ function Card({ d }) {
           <span className="card__kind">{d.kind}</span>
         </h3>
         <p className="card__blurb">{d.blurb}</p>
-        <div className="card__meta">
-          <span>{d.note}</span>
-          <b>{d.points.length} inclusions</b>
-        </div>
+        <ul className="card__points">
+          {d.points.map((p) => (
+            <li key={p}>{p}</li>
+          ))}
+        </ul>
       </div>
     </article>
   )
@@ -109,8 +110,8 @@ export default function Destinations() {
         </div>
         <div className="dest__head-right">
           <p style={{ maxWidth: '34ch', color: 'rgba(236,230,215,0.62)', fontSize: '0.98rem', lineHeight: 1.6 }}>
-            Six live routes, each with its own consulate logic, its own paperwork and its own honest
-            timeline. Drag your scroll sideways.
+            {countWord(DESTINATIONS.length)} live routes across study, work and visit visas, each with its own
+            consulate logic and its own paperwork. Scroll sideways.
           </p>
         </div>
       </div>
@@ -124,7 +125,7 @@ export default function Destinations() {
       </div>
 
       <div className="dest__foot">
-        <span className="label">01 — 0{DESTINATIONS.length}</span>
+        <span className="label">01 — {String(DESTINATIONS.length).padStart(2, '0')}</span>
         <div className="dest__progress">
           <i ref={bar} />
         </div>
