@@ -97,12 +97,13 @@ export const BEATS = [
   },
   {
     id: 'numbers',
-    scale: 1,
     at: 1.0,
-    // small, high and well back: the statistics are centred, so the aircraft
-    // has to clear them entirely rather than merely sit behind them
-    rot: [0.5, -1.1, 0.22],
-    pos: [0.5, 3.8, -5.2],
+    // Off to the upper right, nose-left, flying in toward the arrivals board.
+    // Centred, it sat on the panel title once the board made the content
+    // taller. Placed from the camera maths: ~(1130,175) at 1440x900 and
+    // ~(990,120) at 1280x720, clear of the title, the nav and the board.
+    rot: [0.5, -2.04, -0.22],
+    pos: [6.35, 3.96, -5.2],
     cam: [0, 0.75, 11.5],
     fov: 42,
     scale: 0.86,

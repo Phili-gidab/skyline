@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import SplitFlap from './SplitFlap.jsx'
+import Arrivals from './Arrivals.jsx'
 import { stage, BEATS } from '../stage3d/choreography.js'
-import { BRAND, DESTINATIONS, PROCESS, STATS, countWord } from '../data/site'
+import { BRAND, DESTINATIONS, PROCESS, countWord } from '../data/site'
 
 const BOARD_INTERVAL = 4200
 
@@ -324,24 +325,14 @@ export default function Story({ ready }) {
         </div>
       </section>
 
-      {/* ------------------------------------------------ 05 numbers */}
+      {/* ------------------------------------------------ 05 arrivals */}
       <section className="panel panel--centre panel--fade" id="numbers">
         <div className="panel__inner">
           <PanelHead index="05" eyebrow="On the record" />
           <h2 className="panel__title numbers__title">
             The <em>record</em>
           </h2>
-          <div className="numbers">
-            {STATS.map((s) => (
-              <div className="number" key={s.label}>
-                <div className="number__value">
-                  {s.value.toLocaleString('en-US')}
-                  <sup>{s.suffix}</sup>
-                </div>
-                <div className="number__label">{s.label}</div>
-              </div>
-            ))}
-          </div>
+          <Arrivals time={time} />
         </div>
       </section>
     </div>

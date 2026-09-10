@@ -182,12 +182,14 @@ Film grain, a vignette and a difference-blend cursor sit above everything as fix
 | 02 Capabilities | Turnaround times as spec readouts |
 | 03 Routes | The ten destinations as an IATA route list |
 | 04 Process | The catalogue's six steps |
-| 05 Numbers | Headline statistics |
+| 05 Record | An arrivals board, bookending the hero's departures board: split-flap stats that riffle in row by row and replay in either scroll direction, then a WhatsApp / Telegram call to action |
 
 **On the ground, below:** Destinations (pinned horizontal gallery of postcards — full-colour photo,
 details on a cream panel, inclusions and a WhatsApp link on hover or focus), Service catalogue
 (accordion, from the client's PDF), Study (inverted cream
-section with the Post University tables), Careers, Contact, Footer.
+section with the Post University tables), Careers, Contact, and the Footer — navigation into every section, service line and destination (a
+footer service link opens that line of the catalogue), one compact contact column, and an outlined
+wordmark that fills gold on hover.
 
 The split-flap board ([SplitFlap.jsx](src/components/SplitFlap.jsx)) is a Solari display: each cell
 riffles the charset and settles left to right.

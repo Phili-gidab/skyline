@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { BRAND, CATALOGUE, EXTRA_SERVICES, WHY, NOTICE, whatsappLink } from '../data/site'
+import { OPEN_SERVICE } from '../lib/events'
 
 /**
  * The service catalogue, set from the client's own PDF
@@ -127,6 +128,13 @@ export default function Catalogue() {
     }, root)
 
     return () => ctx.revert()
+  }, [])
+
+  // The footer's service links open the matching line (see lib/events.js).
+  useEffect(() => {
+    const onOpen = (e) => setOpen(e.detail)
+    window.addEventListener(OPEN_SERVICE, onOpen)
+    return () => window.removeEventListener(OPEN_SERVICE, onOpen)
   }, [])
 
   // Everything pinned or triggered further down the page was measured

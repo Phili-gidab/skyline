@@ -369,11 +369,12 @@ export const PROCESS = [
   { n: '06', title: 'Departure', body: 'Travel preparation and practical guidance before you fly.' },
 ]
 
+/* Rows of the arrivals board that closes the story. */
 export const STATS = [
-  { value: 500, suffix: '+', label: 'Successful visas issued' },
-  { value: DESTINATIONS.length, suffix: '', label: 'Destinations' },
-  { value: CATALOGUE.length, suffix: '', label: 'Service lines: study, work, visit' },
-  { value: 0, suffix: ' birr', label: 'Payable before approval' },
+  { value: 500, suffix: '+', label: 'Visas issued', status: 'And counting' },
+  { value: DESTINATIONS.length, suffix: '', label: 'Live destinations', status: 'Open now' },
+  { value: CATALOGUE.length, suffix: '', label: 'Service lines', status: 'Study · work · visit' },
+  { value: 0, suffix: ' birr', label: 'Payable before approval', status: 'Pay on approval' },
 ]
 
 export const SCHOLARSHIP = {

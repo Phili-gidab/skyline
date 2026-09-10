@@ -89,8 +89,8 @@ export default function Study() {
             <thead>
               <tr>
                 <th>Level</th>
-                <th style={{ textAlign: 'right' }}>Listed fee</th>
-                <th style={{ textAlign: 'right' }}>After scholarship</th>
+                <th className="num">Listed fee</th>
+                <th className="num">After scholarship</th>
               </tr>
             </thead>
             <tbody>
