@@ -118,40 +118,45 @@ export default function Story({ ready }) {
         .to('.hero__sub > *', { y: 0, opacity: 1, duration: 1, ease: 'power3.out', stagger: 0.1 }, '-=0.7')
 
 
-      // every panel after the hero fades its copy in and out with the scroll,
-      // so the aircraft is never fighting text for attention
-      const fadePanels = gsap.utils.toArray('.panel--fade')
-      fadePanels.forEach((panel) => {
-        gsap.fromTo(
-          panel.querySelector('.panel__inner'),
-          { y: 60, opacity: 0 },
-          {
-            y: 0,
-            opacity: 1,
-            ease: 'power2.out',
-            duration: 1,
-            scrollTrigger: {
-              trigger: panel,
-              start: 'top 92%',
-              end: 'top 48%',
-              scrub: 0.6,
-            },
-          }
-        )
-        /* Every panel fades out, the last one included: it is painted over
-           the fixed stage, so leaving it at full opacity kept "THE RECORD"
-           sitting on top of the Destinations section below. */
-        gsap.to(panel.querySelector('.panel__inner'), {
-          y: -36,
-          opacity: 0,
-          ease: 'power2.in',
-          scrollTrigger: {
-            trigger: panel,
-            start: 'bottom 52%',
-            end: 'bottom 8%',
-            scrub: 0.6,
-          },
+      /* Panel copy fades in as its panel arrives and out as it leaves.
+
+         This is a pure function of the panel's position, recomputed on every
+         scroll — not a pair of tweens. It used to be a scrubbed fade-in plus a
+         scrubbed fade-out on the same element's opacity, and the second tween
+         recorded the first one's hidden start state as its own. Scrolling down
+         hid the problem; scrolling back up reversed the fade-out into that
+         hidden state, so the copy stayed invisible while the aircraft carried
+         on. Position has no history, so this is right in both directions and
+         at any scroll speed. */
+      const clamp01 = gsap.utils.clamp(0, 1)
+      const easeArrive = gsap.parseEase('power2.out')
+      const easeLeave = gsap.parseEase('power2.in')
+
+      gsap.utils.toArray('.panel--fade').forEach((panel) => {
+        const inner = panel.querySelector('.panel__inner')
+        const setOpacity = gsap.quickSetter(inner, 'opacity')
+        const setY = gsap.quickSetter(inner, 'y', 'px')
+
+        const apply = () => {
+          const r = panel.getBoundingClientRect()
+          const vh = window.innerHeight
+          // 0 -> 1 as the top travels from 92% to 48% of the viewport
+          const arrive = easeArrive(clamp01((0.92 * vh - r.top) / (0.44 * vh)))
+          // 0 -> 1 as the bottom travels from 52% to 8%
+          const leave = easeLeave(clamp01((0.52 * vh - r.bottom) / (0.44 * vh)))
+          setOpacity(Math.min(arrive, 1 - leave))
+          setY((1 - arrive) * 60 - leave * 36)
+        }
+
+        ScrollTrigger.create({
+          trigger: panel,
+          start: 'top bottom',
+          end: 'bottom top',
+          onUpdate: apply,
+          onToggle: apply, // a fast fling can cross the whole range in one frame
+          onRefresh: apply,
         })
+        apply()
       })
     }, root)
 

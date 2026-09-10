@@ -55,7 +55,9 @@ export const countWord = (n) => NUMBER_WORDS[n] ?? String(n)
    true to the picture. Every photo was checked by eye, not just for a 200.
    ---------------------------------------------------------------------- */
 
-const photo = (id) => `https://images.unsplash.com/${id}?w=1400&q=80&auto=format&fit=crop`
+// Base URLs only: both CDNs resize on the fly via ?w=, so the card asks for the
+// width it is actually shown at (see photoSrcSet) rather than a fixed 1400px.
+const photo = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&q=70`
 
 const SERVICE_WORD = { Study: 'study', Work: 'work', Visit: 'visit' }
 
@@ -119,7 +121,7 @@ const DESTINATION_LIST = [
     ],
     // Pexels (free for commercial use), not Unsplash — none of the Unsplash
     // candidates for Armenia actually showed Armenia
-    photo: 'https://images.pexels.com/photos/30454809/pexels-photo-30454809.jpeg?auto=compress&cs=tinysrgb&w=1400',
+    photo: 'https://images.pexels.com/photos/30454809/pexels-photo-30454809.jpeg?auto=compress&cs=tinysrgb',
   },
   {
     id: 'turkey',
@@ -241,6 +243,14 @@ const DESTINATION_LIST = [
     photo: photo('photo-1547981609-4b6bfe67ca0b'),
   },
 ]
+
+/**
+ * srcset for a hot-linked destination photo. Postcards are shown at most 440px
+ * wide, yet each used to download a 1400px original (200-400 KB) — on the
+ * mobile data much of this audience uses, the later cards sat blank.
+ */
+export const photoSrcSet = (url, widths = [480, 720, 960, 1280]) =>
+  widths.map((w) => `${url}&w=${w} ${w}w`).join(', ')
 
 export const DESTINATIONS = DESTINATION_LIST.map((d, i) => ({
   ...d,

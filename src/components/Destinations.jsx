@@ -1,15 +1,21 @@
 import React, { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { DESTINATIONS, countWord } from '../data/site'
+import { DESTINATIONS, countWord, whatsappLink, photoSrcSet } from '../data/site'
 
 function Card({ d }) {
+  const ask = whatsappLink(
+    `Hello Skyline, I would like to ask about ${d.kind.toLowerCase()} for ${d.country}.`
+  )
+
   return (
-    <article className="card" data-cursor={d.kind}>
-      <div className="card__media">
+    <article className="card">
+      <div className="card__photo">
         {d.photo && (
           <img
-            src={d.photo}
+            src={`${d.photo}&w=960`}
+            srcSet={photoSrcSet(d.photo)}
+            sizes="(max-width: 860px) 80vw, (max-width: 1466px) 30vw, 440px"
             alt=""
             loading="lazy"
             decoding="async"
@@ -18,24 +24,32 @@ function Card({ d }) {
             }}
           />
         )}
+        <span className="card__index">{d.index}</span>
+        <span className="card__badge">ADD → {d.iata}</span>
+        <span className="card__caption">{d.city}</span>
       </div>
-      <div className="card__scrim" />
 
-      <span className="card__index">{d.index}</span>
-      <span className="card__badge">ADD → {d.iata}</span>
-
-      <div>
-        <div className="card__city">{d.city}</div>
-        <h3 className="card__country">
-          {d.country}
-          <span className="card__kind">{d.kind}</span>
-        </h3>
-        <p className="card__blurb">{d.blurb}</p>
-        <ul className="card__points">
-          {d.points.map((p) => (
-            <li key={p}>{p}</li>
+      <div className="card__info">
+        <h3 className="card__country">{d.country}</h3>
+        <ul className="card__services" aria-label="Services">
+          {d.services.map((sv) => (
+            <li key={sv}>{sv}</li>
           ))}
         </ul>
+        <p className="card__blurb">{d.blurb}</p>
+
+        <div className="card__more">
+          <div className="card__more-inner">
+            <ul className="card__points">
+              {d.points.map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+            <a className="card__ask" href={ask} target="_blank" rel="noreferrer" data-cursor="WhatsApp">
+              Ask about {d.country} ↗
+            </a>
+          </div>
+        </div>
       </div>
     </article>
   )
@@ -109,7 +123,7 @@ export default function Destinations() {
           </h2>
         </div>
         <div className="dest__head-right">
-          <p style={{ maxWidth: '34ch', color: 'rgba(236,230,215,0.62)', fontSize: '0.98rem', lineHeight: 1.6 }}>
+          <p style={{ maxWidth: '34ch', color: 'var(--text-2)', fontSize: '0.98rem', lineHeight: 1.6 }}>
             {countWord(DESTINATIONS.length)} live routes across study, work and visit visas, each with its own
             consulate logic and its own paperwork. Scroll sideways.
           </p>

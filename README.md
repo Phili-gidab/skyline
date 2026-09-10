@@ -184,7 +184,9 @@ Film grain, a vignette and a difference-blend cursor sit above everything as fix
 | 04 Process | The catalogue's six steps |
 | 05 Numbers | Headline statistics |
 
-**On the ground, below:** Destinations (pinned horizontal gallery), Service catalogue (accordion, from the client's PDF), Study (inverted cream
+**On the ground, below:** Destinations (pinned horizontal gallery of postcards — full-colour photo,
+details on a cream panel, inclusions and a WhatsApp link on hover or focus), Service catalogue
+(accordion, from the client's PDF), Study (inverted cream
 section with the Post University tables), Careers, Contact, Footer.
 
 The split-flap board ([SplitFlap.jsx](src/components/SplitFlap.jsx)) is a Solari display: each cell
@@ -212,6 +214,14 @@ JS-toggled class, which left the bar briefly unreadable mid-scroll.
   panel whose content overflows pushes itself up under the nav and collides with the neighbouring
   panel's crossfade. The routes and process panels both did this at 1440x900 until their rows were
   tightened; there is a `max-height: 940px` block that tightens them further on short laptops.
+- **Never animate one property with two scrubbed tweens.** The story panels used a scrubbed
+  fade-in `fromTo` plus a scrubbed fade-out `to` on the same element's opacity. The `to` recorded the
+  `fromTo`'s hidden start state as its own start, so scrolling *back up* reversed the fade-out into
+  opacity 0 — the copy vanished while the aircraft kept animating. The fade is now a pure function
+  of the panel's position (`Story.jsx`), which has no history and is right in both directions.
+- Body copy on the dark ground uses `--text-2` / `--text-3`, and no text is set below 0.72rem (the
+  cursor label excepted). The edge vignette is capped at 42% black because it sits over every
+  section, exactly where the left-aligned copy lives.
 - Every `.panel--fade` fades out, the last one included. Skipping the last left "THE RECORD" painted
   on top of the Destinations section below it, because the panels sit over a fixed stage.
 - **three's GLTFLoader renames nodes.** It runs every node name through
@@ -275,7 +285,9 @@ Still open:
 7. **Destination photography** is hot-linked Unsplash imagery (Armenia is from Pexels, because none of
    the Unsplash candidates actually showed Armenia). Replace with owned or licensed photography
    before launch. Captions name where each photo was taken — Ireland is Cobh, Brazil is Rio — while
-   the route badge is the country's gateway airport.
+   the route badge is the country's gateway airport. Photos are requested at the width they are
+   shown via `srcset` (`photoSrcSet` in `site.js`) — about 25–45 KB each rather than the 200–400 KB
+   of a fixed 1400px original, which on slow connections left later postcards blank.
 8. **Insurance.** The additional-services list carried both "Travel insurance" and "Insurance"; only
    the first is shown. If the second meant something different, add it to `EXTRA_SERVICES`.
 9. The flyers' "100% success rate" claim is deliberately **not** repeated. The catalogue's own

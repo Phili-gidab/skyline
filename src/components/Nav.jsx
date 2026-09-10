@@ -21,6 +21,7 @@ export default function Nav({ ready }) {
       if (!el) return
       if (y > last && y > 300 && !open) el.classList.add('is-hidden')
       else el.classList.remove('is-hidden')
+      el.classList.toggle('is-scrolled', y > 24)
       last = y
     }
     window.addEventListener('scroll', onScroll, { passive: true })

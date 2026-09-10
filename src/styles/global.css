@@ -9,7 +9,7 @@
   --ink-2: #0a1f15;
   --forest: #0d3323;
   --moss: #145c3c;
-  --sage: #6f8f7f;
+  --sage: #94ae9f;
 
   --bone: #ece6d7;
   --bone-2: #f6f2e8;
@@ -20,6 +20,10 @@
 
   --fg: var(--bone);
   --bg: var(--ink);
+
+  /* body copy on the dark ground: primary is --bone-2 */
+  --text-2: rgba(236, 230, 215, 0.82);
+  --text-3: rgba(236, 230, 215, 0.68);
 
   /* --- type --- */
   --serif: 'Instrument Serif', 'Times New Roman', Times, serif;
@@ -123,8 +127,8 @@ button {
 
 .label {
   font-family: var(--mono);
-  font-size: clamp(0.62rem, 0.75vw, 0.72rem);
-  letter-spacing: 0.18em;
+  font-size: clamp(0.74rem, 0.8vw, 0.82rem);
+  letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--sage);
   font-weight: 400;
@@ -135,8 +139,8 @@ button {
   align-items: center;
   gap: 0.75rem;
   font-family: var(--mono);
-  font-size: clamp(0.62rem, 0.75vw, 0.72rem);
-  letter-spacing: 0.2em;
+  font-size: clamp(0.74rem, 0.8vw, 0.82rem);
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--sage);
 }
@@ -224,7 +228,7 @@ button {
   inset: 0;
   z-index: 9997;
   pointer-events: none;
-  background: radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(3, 10, 7, 0.75) 100%);
+  background: radial-gradient(130% 100% at 50% 45%, transparent 62%, rgba(3, 10, 7, 0.42) 100%);
 }
 
 /* ============================================================
@@ -416,13 +420,17 @@ button {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  /* always on: content scrolls under a fixed bar on every section, and a
-     JS-toggled scrim just meant the bar was briefly unreadable. The gradient
-     is invisible against the hero's own dark top. */
-  opacity: 1;
-  transition: background 0.45s var(--ease);
+  /* Off at the very top, where it would only dim the hero's own meta row
+     (the standfirst and the Addis clock sit right under the bar); on from the
+     first scroll, when content starts passing beneath it. */
+  opacity: 0;
+  transition: opacity 0.45s var(--ease), background 0.45s var(--ease);
   background: linear-gradient(to bottom, rgba(6, 19, 13, 0.94) 0%, rgba(6, 19, 13, 0.72) 55%, rgba(6, 19, 13, 0) 100%);
   height: 160%;
+}
+
+.nav.is-scrolled::before {
+  opacity: 1;
 }
 
 .nav.is-light {
@@ -463,8 +471,8 @@ button {
 .nav__link {
   position: relative;
   font-family: var(--mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.16em;
+  font-size: 0.78rem;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   color: inherit;
   padding-block: 0.35rem;
@@ -493,7 +501,7 @@ button {
   border-radius: 100px;
   padding: 0.5rem 1.1rem;
   font-family: var(--mono);
-  font-size: 0.66rem;
+  font-size: 0.76rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: inherit;
@@ -680,8 +688,8 @@ button {
 .panel__index,
 .panel__eyebrow {
   font-family: var(--mono);
-  font-size: 0.66rem;
-  letter-spacing: 0.2em;
+  font-size: 0.76rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
@@ -710,7 +718,7 @@ button {
 
 .panel__body {
   margin-top: clamp(1rem, 2.2vh, 1.35rem);
-  color: rgba(236, 230, 215, 0.7);
+  color: var(--text-2);
   font-size: clamp(0.95rem, 1.15vw, 1.08rem);
   line-height: 1.65;
 }
@@ -752,7 +760,7 @@ button {
 .spec__label {
   margin-top: 0.7rem;
   font-family: var(--mono);
-  font-size: 0.62rem;
+  font-size: 0.74rem;
   letter-spacing: 0.13em;
   text-transform: uppercase;
   color: var(--sage);
@@ -772,7 +780,7 @@ button {
   display: grid;
   /* fixed trailing column: each row is its own grid, so `auto` would size
      it per row and the right-hand edge would come out ragged */
-  grid-template-columns: auto minmax(0, 1fr) 18ch;
+  grid-template-columns: auto minmax(0, 1fr) 21ch;
   align-items: baseline;
   gap: 0.2rem 1rem;
   padding: clamp(0.42rem, 1vh, 0.68rem) 0;
@@ -781,7 +789,7 @@ button {
 
 .route__code {
   font-family: var(--mono);
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   letter-spacing: 0.14em;
   color: var(--signal);
   white-space: nowrap;
@@ -805,7 +813,7 @@ button {
   justify-self: end;
   text-align: right;
   font-family: var(--mono);
-  font-size: 0.66rem;
+  font-size: 0.76rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--bone);
@@ -816,8 +824,8 @@ button {
   justify-self: end;
   text-align: right;
   font-family: var(--mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.16em;
+  font-size: 0.72rem;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   color: var(--sage);
 }
@@ -839,8 +847,8 @@ button {
 
 .stage-row__n {
   font-family: var(--mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.18em;
+  font-size: 0.78rem;
+  letter-spacing: 0.15em;
   color: var(--gold);
   padding-top: 0.35rem;
 }
@@ -856,7 +864,7 @@ button {
 
 .stage-row__body {
   margin-top: 0.35rem;
-  color: rgba(236, 230, 215, 0.62);
+  color: var(--text-2);
   font-size: 0.84rem;
   line-height: 1.5;
   max-width: 46ch;
@@ -890,7 +898,7 @@ button {
 .number__label {
   margin-top: 0.9rem;
   font-family: var(--mono);
-  font-size: 0.62rem;
+  font-size: 0.74rem;
   letter-spacing: 0.13em;
   text-transform: uppercase;
   color: var(--sage);
@@ -927,8 +935,8 @@ button {
 
 .hero__intro {
   font-family: var(--mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.16em;
+  font-size: 0.78rem;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   color: var(--sage);
 }
@@ -936,7 +944,7 @@ button {
 .hero__clock {
   text-align: right;
   font-family: var(--mono);
-  font-size: 0.7rem;
+  font-size: 0.78rem;
   letter-spacing: 0.12em;
   color: var(--sage);
   text-transform: uppercase;
@@ -991,7 +999,7 @@ button {
   background: rgba(4, 14, 10, 0.6);
   backdrop-filter: blur(10px);
   font-family: var(--mono);
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--sage);
@@ -1004,7 +1012,7 @@ button {
 .hero__board-label { color: var(--gold); white-space: nowrap; }
 
 .hero__board-kind,
-.hero__board-time { white-space: nowrap; color: rgba(236, 230, 215, 0.66); }
+.hero__board-time { white-space: nowrap; color: var(--text-2); }
 
 .hero__board-time { color: var(--bone); }
 
@@ -1095,8 +1103,8 @@ button {
   align-items: center;
   gap: 0.7rem;
   font-family: var(--mono);
-  font-size: 0.66rem;
-  letter-spacing: 0.18em;
+  font-size: 0.76rem;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--sage);
 }
@@ -1234,7 +1242,7 @@ button {
 .stat__label {
   margin-top: 0.9rem;
   font-family: var(--mono);
-  font-size: 0.66rem;
+  font-size: 0.76rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--sage);
@@ -1308,146 +1316,186 @@ button {
   will-change: transform;
 }
 
+/* Postcards: the photograph in full colour on top, the facts on a paper
+   panel beneath. The old cards greyed and darkened every photo and kept the
+   useful information behind hover — a visibility problem, not only a look. */
 .card {
   position: relative;
   flex: 0 0 auto;
-  width: clamp(280px, 32vw, 460px);
-  height: clamp(420px, 68vh, 640px);
-  border: 1px solid var(--rule);
-  overflow: hidden;
-  background: var(--forest);
+  width: clamp(300px, 30vw, 440px);
+  height: clamp(480px, 74vh, 680px);
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  padding: clamp(1.25rem, 2vw, 2rem);
-  isolation: isolate;
-  transition: border-color 0.6s var(--ease);
-}
-
-.card:hover { border-color: var(--rule-strong); }
-
-.card__media {
-  position: absolute;
-  inset: 0;
-  z-index: -2;
   overflow: hidden;
-  background:
-    radial-gradient(90% 70% at 20% 10%, rgba(20, 92, 60, 0.85), transparent 70%),
-    linear-gradient(200deg, #0f4630 0%, #071a12 100%);
+  border-radius: 14px;
+  background: var(--bone-2);
+  color: var(--ink);
+  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.7);
+  isolation: isolate;
 }
 
-.card__media img {
-  width: 100%;
-  height: 115%;
-  object-fit: cover;
-  filter: grayscale(0.85) contrast(1.08) brightness(0.78);
-  opacity: 0.8;
-  transform: scale(1.06);
-  transition: transform 1.2s var(--ease), filter 0.9s var(--ease), opacity 0.9s var(--ease);
-  will-change: transform;
+.card__photo {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: linear-gradient(200deg, #1d5a41 0%, #0b2a1d 100%);
 }
 
-.card:hover .card__media img {
-  transform: scale(1.14);
-  filter: grayscale(0.15) contrast(1.02) brightness(0.9);
-  opacity: 1;
-}
-
-.card__scrim {
+.card__photo img {
   position: absolute;
   inset: 0;
-  z-index: -1;
-  background: linear-gradient(to top, rgba(4, 14, 10, 0.94) 8%, rgba(4, 14, 10, 0.25) 58%, rgba(4, 14, 10, 0.55) 100%);
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.04);
+  transition: transform 1.2s var(--ease);
+}
+
+.card:hover .card__photo img {
+  transform: scale(1.1);
+}
+
+/* only enough shade to carry the caption — the photo itself stays true */
+.card__photo::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 38%;
+  background: linear-gradient(to top, rgba(4, 14, 10, 0.55), transparent);
+  pointer-events: none;
+}
+
+.card__index,
+.card__badge {
+  position: absolute;
+  top: 1rem;
+  z-index: 1;
+  padding: 0.42rem 0.75rem;
+  border-radius: 100px;
+  background: rgba(6, 19, 13, 0.72);
+  backdrop-filter: blur(6px);
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bone-2);
 }
 
 .card__index {
-  position: absolute;
-  top: clamp(1.25rem, 2vw, 2rem);
-  left: clamp(1.25rem, 2vw, 2rem);
-  font-family: var(--mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.2em;
+  left: 1rem;
   color: var(--gold);
 }
 
 .card__badge {
-  position: absolute;
-  top: clamp(1.1rem, 2vw, 1.85rem);
-  right: clamp(1.25rem, 2vw, 2rem);
-  border: 1px solid rgba(236, 230, 215, 0.35);
-  border-radius: 100px;
-  padding: 0.35rem 0.8rem;
-  font-family: var(--mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--bone);
-  backdrop-filter: blur(6px);
+  right: 1rem;
 }
 
-.card__city {
+.card__caption {
+  position: absolute;
+  left: 1.1rem;
+  bottom: 0.9rem;
+  z-index: 1;
   font-family: var(--mono);
-  font-size: 0.66rem;
-  letter-spacing: 0.2em;
+  font-size: 0.76rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--sage);
-  margin-bottom: 0.5rem;
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+}
+
+.card__info {
+  flex: 0 0 auto;
+  padding: clamp(1.1rem, 1.8vw, 1.5rem) clamp(1.1rem, 1.8vw, 1.6rem) clamp(1.2rem, 2vw, 1.6rem);
 }
 
 .card__country {
   font-family: var(--serif);
-  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-size: clamp(1.9rem, 3vw, 2.6rem);
   line-height: 0.95;
+  letter-spacing: -0.02em;
   text-transform: uppercase;
-  letter-spacing: -0.025em;
-  color: var(--bone-2);
+  color: var(--ink);
 }
 
-.card__kind {
-  font-family: var(--serif);
-  font-style: italic;
-  text-transform: none;
-  color: var(--gold);
-  font-size: 0.5em;
-  display: block;
-  margin-top: 0.35rem;
-  letter-spacing: 0;
+.card__services {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}
+
+.card__services li {
+  padding: 0.3rem 0.65rem;
+  border: 1px solid rgba(20, 92, 60, 0.45);
+  border-radius: 100px;
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--moss);
 }
 
 .card__blurb {
-  margin-top: 1rem;
-  font-size: 0.87rem;
-  line-height: 1.55;
-  color: rgba(236, 230, 215, 0.68);
-  max-height: 0;
-  opacity: 0;
+  margin-top: 0.8rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: rgba(6, 19, 13, 0.8);
+}
+
+/* inclusions open on hover or keyboard focus; grid rows, so no JS height */
+.card__more {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.6s var(--ease);
+}
+
+.card:hover .card__more,
+.card:focus-within .card__more {
+  grid-template-rows: 1fr;
+}
+
+.card__more-inner {
+  min-height: 0;
   overflow: hidden;
-  transition: max-height 0.7s var(--ease), opacity 0.5s var(--ease), margin 0.5s var(--ease);
 }
 
-.card:hover .card__blurb {
-  max-height: 12em;
-  opacity: 1;
+.card__points {
+  list-style: none;
+  margin-top: 0.85rem;
+  border-top: 1px solid rgba(6, 19, 13, 0.12);
 }
 
-.card__meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(236, 230, 215, 0.18);
+.card__points li {
+  position: relative;
+  padding: 0.42rem 0 0.42rem 1rem;
+  border-bottom: 1px solid rgba(6, 19, 13, 0.08);
+  font-size: 0.88rem;
+  line-height: 1.35;
+  color: rgba(6, 19, 13, 0.84);
+}
+
+.card__points li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 0.5rem;
+  height: 1px;
+  background: var(--gold);
+}
+
+.card__ask {
+  display: inline-flex;
+  margin-top: 0.9rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid currentColor;
   font-family: var(--mono);
-  font-size: 0.63rem;
-  letter-spacing: 0.14em;
+  font-size: 0.76rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--sage);
-}
-
-.card__meta b {
-  color: var(--bone);
-  font-weight: 500;
+  color: var(--moss);
 }
 
 .dest__foot {
@@ -1520,7 +1568,7 @@ button {
 
 .catalogue__mission p {
   margin-top: 0.8rem;
-  color: rgba(236, 230, 215, 0.72);
+  color: var(--text-2);
   font-size: 0.98rem;
   line-height: 1.6;
 }
@@ -1531,8 +1579,8 @@ button {
   padding-bottom: 0.25rem;
   border-bottom: 1px solid currentColor;
   font-family: var(--mono);
-  font-size: 0.66rem;
-  letter-spacing: 0.16em;
+  font-size: 0.76rem;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   color: var(--gold);
   transition: color 0.35s var(--ease);
@@ -1568,8 +1616,8 @@ button {
 
 .cat__n {
   font-family: var(--mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.16em;
+  font-size: 0.78rem;
+  letter-spacing: 0.13em;
   color: var(--gold);
   transition: color 0.4s var(--ease);
 }
@@ -1597,7 +1645,7 @@ button {
   max-width: 34ch;
   text-align: right;
   font-family: var(--mono);
-  font-size: 0.62rem;
+  font-size: 0.74rem;
   letter-spacing: 0.14em;
   line-height: 1.6;
   text-transform: uppercase;
@@ -1683,7 +1731,7 @@ button {
   max-width: 62ch;
   font-size: clamp(1rem, 1.3vw, 1.2rem);
   line-height: 1.6;
-  color: rgba(236, 230, 215, 0.82);
+  color: var(--text-2);
 }
 
 .cat__cols {
@@ -1698,9 +1746,9 @@ button {
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--rule);
   font-family: var(--mono);
-  font-size: 0.62rem;
+  font-size: 0.74rem;
   font-weight: 400;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--sage);
 }
@@ -1717,7 +1765,7 @@ button {
   padding: 0.42rem 0 0.42rem 1.2rem;
   font-size: 0.93rem;
   line-height: 1.45;
-  color: rgba(236, 230, 215, 0.8);
+  color: var(--text-2);
 }
 
 .cat__items li::before {
@@ -1742,7 +1790,7 @@ button {
   border: 1px solid var(--rule-strong);
   border-radius: 100px;
   font-family: var(--mono);
-  font-size: 0.62rem;
+  font-size: 0.74rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--bone);
@@ -1761,8 +1809,8 @@ button {
   padding-bottom: 0.25rem;
   border-bottom: 1px solid currentColor;
   font-family: var(--mono);
-  font-size: 0.66rem;
-  letter-spacing: 0.16em;
+  font-size: 0.76rem;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   color: var(--signal);
 }
@@ -1783,7 +1831,7 @@ button {
   max-width: 30ch;
   font-size: 0.95rem;
   line-height: 1.6;
-  color: rgba(236, 230, 215, 0.64);
+  color: var(--text-2);
 }
 
 .extras__list {
@@ -1810,7 +1858,7 @@ button {
 .extras__n {
   flex: 0 0 auto;
   font-family: var(--mono);
-  font-size: 0.62rem;
+  font-size: 0.74rem;
   letter-spacing: 0.14em;
   color: var(--gold);
 }
@@ -1858,7 +1906,7 @@ button {
   margin-top: 0.55rem;
   font-size: 0.9rem;
   line-height: 1.55;
-  color: rgba(236, 230, 215, 0.64);
+  color: var(--text-2);
 }
 
 /* ---- the catalogue's legal notice ---- */
@@ -1914,7 +1962,7 @@ button {
 .process__note {
   margin-top: 1.75rem;
   max-width: 34ch;
-  color: rgba(236, 230, 215, 0.62);
+  color: var(--text-2);
   font-size: 0.95rem;
   line-height: 1.6;
 }
@@ -1933,8 +1981,8 @@ button {
 
 .step__n {
   font-family: var(--mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.18em;
+  font-size: 0.78rem;
+  letter-spacing: 0.15em;
   color: var(--gold);
   padding-top: 0.55rem;
 }
@@ -1950,7 +1998,7 @@ button {
 
 .step__body {
   margin-top: 0.9rem;
-  color: rgba(236, 230, 215, 0.62);
+  color: var(--text-2);
   font-size: 0.95rem;
   line-height: 1.65;
   max-width: 52ch;
@@ -2011,8 +2059,8 @@ button {
 .ptable th {
   text-align: left;
   font-family: var(--mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.16em;
+  font-size: 0.74rem;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   color: rgba(6, 19, 13, 0.5);
   font-weight: 400;
@@ -2070,7 +2118,7 @@ button {
 
 .tier__gpa {
   font-family: var(--mono);
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(6, 19, 13, 0.62);
@@ -2095,8 +2143,8 @@ button {
   border-radius: 100px;
   padding: 0.5rem 1rem;
   font-family: var(--mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.16em;
+  font-size: 0.74rem;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
 }
 
@@ -2114,60 +2162,253 @@ button {
 }
 
 /* ============================================================
-   CAREERS
+   CAREERS — open roles as boarding passes
    ============================================================ */
 
 .careers {
   padding: clamp(5rem, 12vh, 9rem) var(--pad);
 }
 
-.careers__grid {
+.careers__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.careers__title {
+  margin-top: 1.25rem;
+  font-family: var(--serif);
+  font-size: clamp(2.4rem, 7vw, 6rem);
+  line-height: 0.88;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+.careers__title .serif-it {
+  color: var(--gold);
+}
+
+.careers__intro {
+  max-width: 34ch;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+.careers__intro a {
+  color: var(--bone-2);
+  border-bottom: 1px solid var(--gold);
+}
+
+.passes {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: clamp(1rem, 2vw, 2rem);
+  gap: clamp(1.25rem, 2.5vw, 2rem);
   margin-top: clamp(2rem, 5vh, 3.5rem);
 }
 
-.role {
-  border: 1px solid var(--rule);
+.pass {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(190px, 20vw, 260px);
+  border-radius: 16px;
+  background: var(--bone-2);
+  color: var(--ink);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+  transition: transform 0.6s var(--ease), box-shadow 0.6s var(--ease);
+}
+
+.pass:hover {
+  transform: translateY(-4px) rotate(-0.3deg);
+  box-shadow: 0 26px 60px -26px rgba(0, 0, 0, 0.65);
+}
+
+.pass__main {
+  display: grid;
+  gap: 1.35rem;
   padding: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.pass__top {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  min-height: clamp(220px, 30vh, 320px);
   justify-content: space-between;
-  transition: background 0.6s var(--ease), border-color 0.6s var(--ease);
-}
-
-.role:hover {
-  background: var(--ink-2);
-  border-color: var(--rule-strong);
-}
-
-.role__title {
-  font-family: var(--serif);
-  font-size: clamp(1.5rem, 3.2vw, 2.6rem);
-  line-height: 1;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
+  color: rgba(6, 19, 13, 0.62);
+}
+
+.pass__top b {
+  font-weight: 500;
+  color: var(--moss);
+}
+
+.pass__route {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+}
+
+.pass__to {
+  text-align: right;
+}
+
+.pass__iata {
+  font-family: var(--serif);
+  font-size: clamp(2.2rem, 4.4vw, 3.6rem);
+  line-height: 1;
   letter-spacing: -0.02em;
 }
 
-.role__body {
-  color: rgba(236, 230, 215, 0.62);
-  font-size: 0.93rem;
-  line-height: 1.6;
-  max-width: 44ch;
+.pass__place {
+  margin-top: 0.25rem;
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(6, 19, 13, 0.6);
 }
 
-.role__apply {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-family: var(--mono);
-  font-size: 0.66rem;
-  letter-spacing: 0.16em;
+.pass__line {
+  position: relative;
+  height: 1px;
+  background: repeating-linear-gradient(90deg, rgba(6, 19, 13, 0.4) 0 6px, transparent 6px 12px);
+}
+
+.pass__line::after {
+  content: '✈';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  padding: 0 0.5rem;
+  transform: translate(-50%, -50%);
+  background: var(--bone-2);
+  font-size: 1.15rem;
+  color: var(--moss);
+  transition: left 0.9s var(--ease);
+}
+
+.pass:hover .pass__line::after {
+  left: 78%;
+}
+
+.pass__title {
+  font-family: var(--serif);
+  font-size: clamp(1.8rem, 3.4vw, 2.8rem);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
   text-transform: uppercase;
-  color: var(--gold);
+  color: var(--ink);
+}
+
+.pass__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.5rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid rgba(6, 19, 13, 0.14);
+}
+
+.pass__field--wide {
+  grid-column: 1 / -1;
+}
+
+.pass__field dt {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(6, 19, 13, 0.56);
+}
+
+.pass__field dd {
+  margin-top: 0.35rem;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+/* the tear-off stub, with the two notches where the ticket would split */
+.pass__stub {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: clamp(1.5rem, 3vw, 2.5rem) clamp(1.25rem, 2vw, 1.75rem);
+  border-left: 2px dashed rgba(6, 19, 13, 0.25);
+}
+
+.pass__stub::before,
+.pass__stub::after {
+  content: '';
+  position: absolute;
+  left: -13px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--ink); /* the section ground, so the notch reads as a cut */
+}
+
+.pass__stub::before { top: -12px; }
+.pass__stub::after { bottom: -12px; }
+
+.pass__code {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--moss);
+}
+
+.pass__barcode {
+  height: 58px;
+  margin-top: 0.9rem;
+  background: repeating-linear-gradient(90deg,
+      var(--ink) 0 2px, transparent 2px 4px, var(--ink) 4px 5px, transparent 5px 8px,
+      var(--ink) 8px 11px, transparent 11px 13px, var(--ink) 13px 14px, transparent 14px 17px);
+  opacity: 0.85;
+}
+
+.pass__cta {
+  display: inline-flex;
+  justify-content: center;
+  padding: 0.9rem 1rem;
+  border-radius: 100px;
+  background: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bone-2);
+  transition: background 0.4s var(--ease);
+}
+
+.pass:hover .pass__cta {
+  background: var(--moss);
+}
+
+@media (max-width: 760px) {
+  .pass { grid-template-columns: 1fr; }
+
+  .pass__stub {
+    flex-direction: row;
+    align-items: center;
+    border-left: 0;
+    border-top: 2px dashed rgba(6, 19, 13, 0.25);
+  }
+
+  .pass__stub::before { left: -12px; top: -13px; }
+  .pass__stub::after { left: auto; right: -12px; top: -13px; bottom: auto; }
+
+  .pass__barcode { width: 90px; height: 40px; }
+  .pass__fields { grid-template-columns: 1fr; }
 }
 
 /* ============================================================
@@ -2208,8 +2449,8 @@ button {
 
 .contact__col h4 {
   font-family: var(--mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.18em;
+  font-size: 0.74rem;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--sage);
   font-weight: 400;
@@ -2258,8 +2499,8 @@ button {
   background: var(--gold);
   color: var(--ink);
   font-family: var(--mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.16em;
+  font-size: 0.78rem;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   text-align: center;
   will-change: transform;
@@ -2294,7 +2535,7 @@ button {
 
 .contact__cta-copy {
   max-width: 38ch;
-  color: rgba(236, 230, 215, 0.66);
+  color: var(--text-2);
   font-size: clamp(0.95rem, 1.2vw, 1.1rem);
   line-height: 1.6;
 }
@@ -2334,14 +2575,14 @@ button {
 .footer__am {
   margin-top: 0.5rem;
   font-size: 0.86rem;
-  color: rgba(236, 230, 215, 0.5);
+  color: var(--text-3);
 }
 
 .footer__h {
   font-family: var(--mono);
-  font-size: 0.62rem;
+  font-size: 0.74rem;
   font-weight: 400;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--sage);
   padding-bottom: 0.9rem;
@@ -2360,7 +2601,7 @@ button {
 .footer__plain {
   font-size: 0.92rem;
   line-height: 1.45;
-  color: rgba(236, 230, 215, 0.74);
+  color: var(--text-2);
   transition: color 0.35s var(--ease);
 }
 
@@ -2411,7 +2652,7 @@ button {
   gap: 1.5rem;
   flex-wrap: wrap;
   font-family: var(--mono);
-  font-size: 0.63rem;
+  font-size: 0.74rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--sage);
@@ -2468,7 +2709,6 @@ button {
   .nav__burger { display: block; }
   .stats { grid-template-columns: repeat(2, 1fr); }
   .stat:nth-child(2n) { border-right: 0; }
-  .careers__grid { grid-template-columns: 1fr; }
   .hero__sub { flex-direction: column; align-items: flex-start; }
   .hero__board {
     grid-template-columns: auto 1fr;
@@ -2476,8 +2716,7 @@ button {
     justify-items: start;
   }
   .hero__board-kind, .hero__board-time { display: none; }
-  .card { width: 78vw; height: 62vh; }
-  .card__blurb { max-height: 12em; opacity: 1; }
+  .card { width: 80vw; height: 70svh; }
 }
 
 @media (max-width: 560px) {
@@ -2594,15 +2833,8 @@ button {
 /* Touch devices get no hover, so the cards must show their copy outright
    and the fill-up service rows must not depend on a pointer. */
 @media (hover: none) {
-  .card__blurb {
-    max-height: 12em;
-    opacity: 1;
-  }
-
-  .card__points {
-    max-height: 10em;
-    opacity: 1;
-  }
+  .card__more { grid-template-rows: 1fr; }
+  .card__points { display: none; }
 }
 
 /* The rig lifts the aircraft into the upper half whenever the viewport is
@@ -2789,50 +3021,14 @@ button {
    CATALOGUE UPDATE — cards, contact, footer, responsive
    ============================================================ */
 
-.card__points {
-  list-style: none;
-  margin-top: 0.9rem;
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition: max-height 0.7s var(--ease), opacity 0.5s var(--ease);
-}
-
-.card:hover .card__points {
-  max-height: 10em;
-  opacity: 1;
-}
-
-.card__points li {
-  position: relative;
-  padding: 0.32rem 0 0.32rem 0.95rem;
-  border-top: 1px solid rgba(236, 230, 215, 0.12);
-  font-family: var(--mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.12em;
-  line-height: 1.4;
-  text-transform: uppercase;
-  color: var(--bone);
-}
-
-.card__points li::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 0.45rem;
-  height: 1px;
-  background: var(--gold);
-}
-
 .contact__alt {
   display: inline-flex;
   margin-top: 1.25rem;
   padding-bottom: 0.25rem;
   border-bottom: 1px solid currentColor;
   font-family: var(--mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.16em;
+  font-size: 0.78rem;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   color: var(--signal);
 }
@@ -2840,7 +3036,7 @@ button {
 .footer__notice {
   max-width: 92ch;
   margin: 0 0 clamp(1.25rem, 3vh, 2rem);
-  font-size: 0.74rem;
+  font-size: 0.8rem;
   line-height: 1.6;
   color: var(--sage);
 }
@@ -2868,12 +3064,6 @@ button {
   .why__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (max-width: 860px) {
-  .card__points {
-    max-height: 10em;
-    opacity: 1;
-  }
-}
 
 @media (max-width: 600px) {
   .cat__head { grid-template-columns: 2.4rem minmax(0, 1fr) 2.4rem; }
