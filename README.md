@@ -186,10 +186,29 @@ Film grain, a vignette and a difference-blend cursor sit above everything as fix
 
 **On the ground, below:** Destinations (pinned horizontal gallery of postcards — full-colour photo,
 details on a cream panel, inclusions and a WhatsApp link on hover or focus), Service catalogue
-(accordion, from the client's PDF), Study (inverted cream
-section with the Post University tables), Careers, Contact, and the Footer — navigation into every section, service line and destination (a
+(accordion, from the client's PDF), Study (the cream section, an offer sheet for Post University:
+a turning seal, four key figures, the programmes with the listed fee struck through, and the merit
+awards as a column chart; opened by the fly-over below), Careers, Contact, and the Footer — navigation into every section, service line and destination (a
 footer service link opens that line of the catalogue), one compact contact column, and an outlined
 wordmark that fills gold on hover.
+
+**The Study fly-over.** Study pins for 1.8 screens of scroll under layered art, moved by one
+scrubbed GSAP timeline ([Study.jsx](src/components/Study.jsx), `FLIGHT`): the ground far below as a
+gold contour map, cloud converging from three sides into a whiteout, then parting off the page while
+the 777 — seen from above, with a soft shadow — crosses over the heading. The page is back by just
+past halfway; the aircraft finishes its pass over it. No WebGL: an earlier real-time shader version
+looked muddy, and layered cut-outs are how the reference builds its own sequence.
+
+The art in `public/flyover/` was rendered offline, not sourced:
+
+- Clouds and ground: `tools/flyover/make_sky.py` (numpy + scipy) — top-down cumulus with a height
+  field, lambert shading and marched self-shadow, and the contour map.
+- The aircraft: `tools/flyover/plane.html`, opened on the dev server, renders the site's own
+  `aircraft.glb` straight down (orthographic, three's RoomEnvironment); `make_plane.py` trims it,
+  sizes it to 1600/2800px and blurs the silhouette into its shadow.
+
+The whiteout (`.flyover__fog`) is exactly `--bone-2`, so lifting it reveals the page with no seam.
+Nav links to Study land at the end of the pin, on the content. With reduced motion there is no pin.
 
 The split-flap board ([SplitFlap.jsx](src/components/SplitFlap.jsx)) is a Solari display: each cell
 riffles the charset and settles left to right.
@@ -199,8 +218,9 @@ riffles the charset and settles left to right.
 The bar is fixed over both dark sections and one cream one (Study). It used
 `mix-blend-mode: difference`, which keeps text legible on any ground — but inverts
 colour, so the logo's brand green came out **magenta** over cream. It now carries an
-explicit `is-light` state, driven by a ScrollTrigger on `.study`, which swaps both the
-text colour and the logo file. A gradient scrim sits behind the bar at all times so
+explicit `is-light` state, which swaps both the text colour and the logo file. Study sets it
+through the `NAV_TONE` event ([events.js](src/lib/events.js)): the section opens with a dark
+fly-over, so its position alone no longer says when its cream is actually showing. A gradient scrim sits behind the bar at all times so
 content scrolling underneath stays readable; that is deliberately CSS-only rather than a
 JS-toggled class, which left the bar briefly unreadable mid-scroll.
 

@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Fly-over aircraft render</title>
+    <style>
+      body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #f6f2e8; }
+      p { margin: 1rem; }
+      a { margin-right: 1rem; }
+      canvas { max-width: 100%; height: auto; }
+    </style>
+  </head>
+  <body>
+    <!--
+      Renders public/models/aircraft.glb straight down for the Study fly-over.
+      Open with the dev server running: /tools/flyover/plane.html
+      Query: ?w=4000&exp=1&env=0.8&key=2.2&amb=0.25
+      Save both PNGs, then: python make_plane.py plane-raw.png sil-raw.png ../../public/flyover
+    -->
+    <p id="status">Rendering…</p>
+    <script type="module" src="./plane.js"></script>
+  </body>
+</html>

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Aircraft from './Aircraft.jsx'
 import { stage, sampleBeats } from './choreography.js'
 
@@ -266,6 +267,7 @@ class GLBoundary extends React.Component {
 
 export default function Stage() {
   const [, setReady] = useState(false)
+  const [covered, setCovered] = useState(false)
   const shell = useRef(null)
 
   /* On a small screen the aircraft shares the middle of the viewport with the
@@ -286,10 +288,26 @@ export default function Stage() {
     }
   }, [])
 
+  /* Past the story the opaque ground covers the stage completely. Stop
+     drawing a scene nobody can see. (+1: the end can never be reached, so
+     the trigger never "leaves".) */
+  useEffect(() => {
+    const ground = document.querySelector('.ground')
+    if (!ground) return
+    const st = ScrollTrigger.create({
+      trigger: ground,
+      start: 'top top',
+      end: () => ScrollTrigger.maxScroll(window) + 1,
+      onToggle: (self) => setCovered(self.isActive),
+    })
+    return () => st.kill()
+  }, [])
+
   return (
     <div className="stage" aria-hidden="true" ref={shell}>
       <GLBoundary>
         <Canvas
+          frameloop={covered ? 'never' : 'always'}
           dpr={[1, typeof window !== 'undefined' && window.innerWidth < 860 ? 1.5 : 1.75]}
           gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
           camera={{ position: [0, 0.35, 7.4], fov: 40 }}

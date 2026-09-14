@@ -1977,37 +1977,34 @@ button {
 }
 
 /* ============================================================
-   STUDY — light inverted section
+   STUDY — the one cream section: an offer sheet for Post University
    ============================================================ */
 
 .study {
   background: var(--bone-2);
   color: var(--ink);
-  padding: clamp(5rem, 12vh, 9rem) var(--pad);
+  padding: clamp(5.5rem, 13vh, 9rem) var(--pad) clamp(4.5rem, 10vh, 7rem);
 }
 
 .study .label,
 .study .eyebrow {
-  color: rgba(6, 19, 13, 0.55);
+  color: rgba(6, 19, 13, 0.58);
 }
 
-.study__head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 2rem;
-  flex-wrap: wrap;
-  padding-bottom: clamp(2rem, 5vh, 3.5rem);
-  border-bottom: 1px solid rgba(6, 19, 13, 0.18);
+.study__top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: clamp(1.5rem, 4vw, 4rem);
 }
 
 .study__title {
-  font-family: var(--serif);
-  font-size: clamp(2.6rem, 8vw, 7rem);
-  line-height: 0.85;
-  text-transform: uppercase;
-  letter-spacing: -0.03em;
   margin-top: 1.25rem;
+  font-family: var(--serif);
+  font-size: clamp(2.8rem, 8.4vw, 7.4rem);
+  line-height: 0.84;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
 }
 
 .study__title em {
@@ -2016,11 +2013,140 @@ button {
   color: var(--moss);
 }
 
-.study__grid {
+/* the seal: the school's name round a slowly turning ring */
+.seal {
+  position: relative;
+  width: clamp(11rem, 15vw, 13.5rem);
+  aspect-ratio: 1;
+  color: var(--moss);
+}
+
+.seal svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.seal__rim {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+  opacity: 0.45;
+}
+
+.seal__text {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  fill: currentColor;
+}
+
+.seal__spin {
+  transform-origin: 100px 100px;
+  animation: sealSpin 48s linear infinite;
+}
+
+@keyframes sealSpin {
+  to { transform: rotate(360deg); }
+}
+
+.seal__core {
+  position: absolute;
+  inset: 21%;
   display: grid;
-  grid-template-columns: 1.25fr 1fr;
-  gap: clamp(2rem, 5vw, 4.5rem);
-  padding-top: clamp(2.5rem, 6vh, 4rem);
+  place-content: center;
+  gap: 0.3rem;
+  border-radius: 50%;
+  background: var(--moss);
+  color: var(--bone-2);
+  text-align: center;
+}
+
+.seal__core span {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(246, 242, 232, 0.82);
+}
+
+.seal__core strong {
+  font-family: var(--serif);
+  font-size: clamp(1.25rem, 1.8vw, 1.6rem);
+  font-weight: 400;
+  line-height: 1;
+}
+
+/* lede and the four figures that matter */
+.study__intro {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.5fr);
+  align-items: end;
+  gap: clamp(1.5rem, 4vw, 4.5rem);
+  margin-top: clamp(2rem, 5vh, 3.25rem);
+  padding-top: clamp(1.5rem, 3.5vh, 2.25rem);
+  border-top: 1px solid rgba(6, 19, 13, 0.18);
+}
+
+.study__lede {
+  max-width: 44ch;
+  font-size: 1.02rem;
+  line-height: 1.65;
+  color: rgba(6, 19, 13, 0.74);
+}
+
+.facts {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.25rem clamp(1rem, 2vw, 2rem);
+}
+
+.facts li {
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--ink);
+}
+
+.facts__value {
+  font-family: var(--serif);
+  font-size: clamp(2rem, 3.4vw, 3.1rem);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+}
+
+.facts li:first-child .facts__value {
+  color: var(--moss);
+}
+
+.facts__label {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(6, 19, 13, 0.6);
+}
+
+/* programmes and the merit chart */
+.study__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(2rem, 5vw, 5rem);
+  margin-top: clamp(3rem, 8vh, 5rem);
+}
+
+.study__h {
+  display: block;
+  margin-bottom: 1.25rem;
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(6, 19, 13, 0.6);
 }
 
 .ptable {
@@ -2029,55 +2155,68 @@ button {
 }
 
 .ptable th {
-  text-align: left;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid rgba(6, 19, 13, 0.22);
   font-family: var(--mono);
   font-size: 0.74rem;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: rgba(6, 19, 13, 0.5);
   font-weight: 400;
-  padding-bottom: 0.9rem;
-  border-bottom: 1px solid rgba(6, 19, 13, 0.2);
-}
-
-.ptable td {
-  padding: clamp(0.85rem, 1.6vw, 1.15rem) 0;
-  border-bottom: 1px solid rgba(6, 19, 13, 0.1);
-  font-size: 0.95rem;
-  vertical-align: baseline;
-}
-
-.ptable td:first-child {
-  font-family: var(--serif);
-  font-size: clamp(1.05rem, 1.8vw, 1.5rem);
+  letter-spacing: 0.13em;
+  text-align: left;
   text-transform: uppercase;
-  letter-spacing: -0.01em;
-  padding-right: 1rem;
-}
-
-.ptable td:last-child {
-  text-align: right;
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
-  color: var(--moss);
-  white-space: nowrap;
-}
-
-.ptable td.strike {
-  color: rgba(6, 19, 13, 0.45);
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  text-align: right;
+  color: rgba(6, 19, 13, 0.55);
 }
 
 .ptable th.num {
   text-align: right;
 }
 
-/* Three columns do not fit a phone: the listed fee ran into the
-   scholarship price and the last column was clipped. Each programme
-   becomes two lines, the name above and the two prices below it. */
+.ptable td {
+  padding: clamp(0.9rem, 1.7vw, 1.2rem) 0;
+  border-bottom: 1px solid rgba(6, 19, 13, 0.1);
+  font-size: 0.95rem;
+  vertical-align: baseline;
+}
+
+.ptable tbody tr {
+  transition: background-color 0.35s var(--ease);
+}
+
+.ptable tbody tr:hover {
+  background-color: rgba(20, 92, 60, 0.05);
+}
+
+.ptable td:first-child {
+  padding-right: 1rem;
+  font-family: var(--serif);
+  font-size: clamp(1.1rem, 1.8vw, 1.5rem);
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.ptable td.strike {
+  padding-right: 1.25rem;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  text-align: right;
+  color: rgba(6, 19, 13, 0.5);
+}
+
+/* the listed fee is struck through, drawn left to right as it is reached */
+.ptable td.strike span {
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 55% / var(--strike, 100%) 1px;
+}
+
+.ptable td:last-child {
+  font-family: var(--mono);
+  font-size: 0.84rem;
+  letter-spacing: 0.03em;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--moss);
+}
+
+/* Three columns do not fit a phone: each programme becomes two lines, the
+   name above and the two prices below it. */
 @media (max-width: 600px) {
   .ptable,
   .ptable thead,
@@ -2094,7 +2233,7 @@ button {
   }
 
   .ptable thead tr {
-    border-bottom-color: rgba(6, 19, 13, 0.2);
+    border-bottom-color: rgba(6, 19, 13, 0.22);
   }
 
   .ptable th,
@@ -2123,53 +2262,361 @@ button {
   }
 }
 
-.tiers {
-  border: 1px solid rgba(6, 19, 13, 0.2);
+.merit {
   padding: clamp(1.25rem, 2.5vw, 2rem);
-  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(6, 19, 13, 0.16);
+  background: rgba(255, 255, 255, 0.5);
 }
 
-.tier {
+.merit .study__h {
+  margin-bottom: 0.4rem;
+}
+
+.merit__sub {
+  display: block;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: rgba(6, 19, 13, 0.62);
+}
+
+.merit__plot {
+  --plot: clamp(8.5rem, 15vw, 12rem);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: end;
+  margin-top: 1.75rem;
+  border-bottom: 1px solid rgba(6, 19, 13, 0.28);
+}
+
+.merit__col {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 1rem;
-  padding: 0.75rem 0;
-  border-bottom: 1px dashed rgba(6, 19, 13, 0.18);
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
 }
 
-.tier:last-of-type { border-bottom: 0; }
+.merit__value {
+  font-family: var(--serif);
+  font-size: clamp(1.02rem, 1.7vw, 1.4rem);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  color: var(--ink);
+}
 
-.tier__gpa {
+/* thin columns, rounded at the cap, square on the baseline */
+.merit__bar {
+  display: block;
+  width: min(24px, 55%);
+  height: calc(var(--h) * var(--plot));
+  border-radius: 4px 4px 0 0;
+  background: var(--moss);
+  transform-origin: bottom;
+  transition: background-color 0.3s var(--ease);
+}
+
+.merit__col:hover .merit__bar {
+  background: var(--forest);
+}
+
+.merit__axis {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-top: 0.65rem;
+}
+
+.merit__gpa {
   font-family: var(--mono);
-  font-size: 0.8rem;
-  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-align: center;
   text-transform: uppercase;
   color: rgba(6, 19, 13, 0.62);
 }
 
-.tier__award {
-  font-family: var(--serif);
-  font-size: clamp(1.3rem, 2.4vw, 1.9rem);
-  letter-spacing: -0.02em;
+.merit__note {
+  margin-top: 1.25rem;
+  font-size: 0.84rem;
+  line-height: 1.6;
+  color: rgba(6, 19, 13, 0.62);
+}
+
+.study__foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.25rem 2rem;
+  margin-top: clamp(2.5rem, 6vh, 4rem);
+  padding-top: clamp(1.5rem, 3.5vh, 2rem);
+  border-top: 1px solid rgba(6, 19, 13, 0.18);
+}
+
+.study__foot p {
+  max-width: 60ch;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: rgba(6, 19, 13, 0.72);
+}
+
+.study__ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.study .btn--solid {
+  background: var(--ink);
+  color: var(--bone-2);
+}
+
+.study .btn--solid:hover {
+  background: var(--moss);
+}
+
+.study .btn--ghost {
+  border: 1px solid rgba(6, 19, 13, 0.3);
   color: var(--ink);
 }
 
-.tier:first-of-type .tier__award { color: var(--moss); }
+.study .btn--ghost:hover {
+  border-color: var(--moss);
+  color: var(--moss);
+}
 
-.study__stamp {
+@media (max-width: 1080px) {
+  .study__intro,
+  .study__body {
+    grid-template-columns: 1fr;
+  }
+
+  .study__intro {
+    align-items: start;
+  }
+}
+
+@media (max-width: 700px) {
+  .study__top {
+    grid-template-columns: 1fr;
+  }
+
+  .seal {
+    justify-self: end;
+    margin-top: -0.5rem;
+  }
+
+  .facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .study__foot {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ============================================================
+   STUDY FLY-OVER
+   The section opens pinned under layered art, built the way the
+   reference builds its own: the ground far below, cloud converging from
+   three sides into a cream whiteout, then parting off the page while the
+   aircraft crosses over it. Art: public/flyover, rendered offline (see
+   README). Timings: FLIGHT in Study.jsx. With reduced motion, no pin.
+   ============================================================ */
+
+.study--fly {
+  position: relative;
+}
+
+.flyover,
+.flyover-jet {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100svh;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.flyover {
+  z-index: 3;
+}
+
+/* above the page: the aircraft passes over the heading */
+.flyover-jet {
+  z-index: 4;
+}
+
+.flyover.is-done,
+.flyover-jet.is-done {
+  visibility: hidden;
+}
+
+.flyover__ground {
+  position: absolute;
+  top: -7%;
+  left: -7%;
+  width: 114%;
+  height: 114%;
+  max-width: none;
+  object-fit: cover;
+  /* stands in until the image arrives */
+  background: var(--ink);
+  will-change: transform;
+}
+
+/* a soft seam with the catalogue on the way in, and darker corners */
+.flyover__shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(180deg, var(--ink) 0%, rgba(6, 19, 13, 0) 22%),
+    radial-gradient(120% 90% at 50% 55%, rgba(6, 19, 13, 0) 55%, rgba(6, 19, 13, 0.55) 100%);
+}
+
+.flyover__hud {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.1rem;
+  padding-inline: var(--pad);
+  text-align: center;
+  color: var(--bone);
+}
+
+.flyover__route {
   display: inline-flex;
   align-items: center;
-  gap: 0.6rem;
-  margin-top: 1.5rem;
-  border: 1px solid var(--moss);
-  color: var(--moss);
-  border-radius: 100px;
-  padding: 0.5rem 1rem;
+  gap: 0.9rem;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.24em;
+  color: var(--gold);
+}
+
+.flyover__route i {
+  font-style: normal;
+  color: var(--text-3);
+}
+
+.flyover__line {
+  font-family: var(--serif);
+  font-size: clamp(2.8rem, 7.5vw, 6.6rem);
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.flyover__line em {
+  font-style: italic;
+  text-transform: none;
+  color: var(--gold);
+}
+
+.flyover__meta {
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.flyover__cue {
+  position: absolute;
+  bottom: clamp(1.5rem, 5vh, 3rem);
+  left: 50%;
+  transform: translateX(-50%);
   font-family: var(--mono);
   font-size: 0.74rem;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--text-3);
+}
+
+/* the whiteout: the page's own cream, so lifting it reveals the page */
+.flyover__fog {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  opacity: 0;
+  background: radial-gradient(90% 80% at 50% 50%, #fbf9f4 0%, var(--bone-2) 75%);
+}
+
+.flyover__cloud {
+  position: absolute;
+  z-index: 4;
+  max-width: none;
+  user-select: none;
+  will-change: transform, opacity;
+}
+
+.flyover__cloud--left {
+  top: -15svh;
+  left: 0;
+  width: auto;
+  height: 130svh;
+}
+
+.flyover__cloud--right {
+  top: -15svh;
+  right: 0;
+  width: auto;
+  height: 130svh;
+}
+
+.flyover__cloud--bottom {
+  bottom: -12svh;
+  left: -10%;
+  width: 120%;
+  height: auto;
+}
+
+.flyover__cloud--puff-a {
+  top: 42%;
+  left: 36%;
+  width: min(62vw, 72svh);
+  height: auto;
+}
+
+.flyover__cloud--puff-b {
+  top: 60%;
+  left: 66%;
+  width: min(52vw, 60svh);
+  height: auto;
+}
+
+.flyover-jet__craft {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(92vw, 125svh);
+  will-change: transform;
+}
+
+.flyover-jet__plane {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: none;
+  height: auto;
+}
+
+/* padded by 8% of the plane's width on every side (make_plane.py) */
+.flyover-jet__shadow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 116%;
+  max-width: none;
+  margin: -8% 0 0 -8%;
+  opacity: 0.3;
 }
 
 .dot {
@@ -2790,7 +3237,6 @@ button {
 @media (max-width: 1080px) {
   .process { grid-template-columns: 1fr; }
   .process__sticky { position: static; }
-  .study__grid { grid-template-columns: 1fr; }
   .contact__row { grid-template-columns: repeat(2, 1fr); row-gap: 2.5rem; }
 }
 
@@ -2901,14 +3347,8 @@ button {
     padding: 0.24em 0.06em;
   }
 
-  .study__head,
   .dest__head {
     display: block;
-  }
-
-  .study__head > div + div {
-    margin-top: 1.5rem;
-    text-align: left;
   }
 
   .contact__cta-row {

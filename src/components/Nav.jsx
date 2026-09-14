@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { BRAND, NAV } from '../data/site'
 import { scrollTo } from '../lib/smooth'
+import { NAV_TONE } from '../lib/events'
 import Logo from './Logo'
 
 export default function Nav({ ready }) {
@@ -32,21 +32,15 @@ export default function Nav({ ready }) {
   /* The nav used mix-blend-mode: difference to stay readable on any ground.
      That works for text but not for a coloured logo — the brand green came
      out magenta over the cream Study section. It now swaps to an explicit
-     light state instead, which is predictable and keeps the mark on-brand. */
-  useEffect(() => {
-    if (!ready) return
-    const light = document.querySelector('.study')
-    const el = navRef.current
-    if (!light || !el) return
+     light state instead, which is predictable and keeps the mark on-brand.
 
-    const st = ScrollTrigger.create({
-      trigger: light,
-      start: 'top 72px',
-      end: 'bottom 72px',
-      onToggle: (self) => setOnLight(self.isActive),
-    })
-    return () => st.kill()
-  }, [ready])
+     Study says when: it opens with a dark fly-over before its cream shows,
+     so the section's own position is no longer the answer (lib/events.js). */
+  useEffect(() => {
+    const onTone = (e) => setOnLight(e.detail === 'light')
+    window.addEventListener(NAV_TONE, onTone)
+    return () => window.removeEventListener(NAV_TONE, onTone)
+  }, [])
 
   // entrance
   useEffect(() => {

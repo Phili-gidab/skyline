@@ -45,7 +45,11 @@ export function useSmoothScroll(enabled = true) {
 export function scrollTo(target) {
   const el = typeof target === 'string' ? document.querySelector(target) : target
   if (!el) return
-  if (window.__lenis) window.__lenis.scrollTo(el, { offset: 0, duration: 1.4 })
+  // A pinned section plays a sequence over extra scroll (the Study fly-over).
+  // A link to it should land where that has finished and the content shows.
+  const pinned = ScrollTrigger.getAll().find((st) => st.pin === el)
+  if (window.__lenis) window.__lenis.scrollTo(pinned ? pinned.end : el, { offset: 0, duration: 1.4 })
+  else if (pinned) window.scrollTo({ top: pinned.end, behavior: 'smooth' })
   else el.scrollIntoView({ behavior: 'smooth' })
 }
 
