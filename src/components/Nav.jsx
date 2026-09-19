@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { BRAND, NAV } from '../data/site'
 import { scrollTo } from '../lib/smooth'
 import { NAV_TONE } from '../lib/events'
@@ -9,7 +10,10 @@ export default function Nav({ ready }) {
   const navRef = useRef(null)
   const menuRef = useRef(null)
   const [open, setOpen] = useState(false)
-  const [onLight, setOnLight] = useState(false)
+  // what is under the bar: the page is white, so the bar is dark by default
+  const [flyoverDark, setFlyoverDark] = useState(false)
+  const [regionDark, setRegionDark] = useState(false)
+  const onDark = open || flyoverDark || regionDark
 
   // hide on scroll down, reveal on scroll up
   useEffect(() => {
@@ -31,16 +35,36 @@ export default function Nav({ ready }) {
 
   /* The nav used mix-blend-mode: difference to stay readable on any ground.
      That works for text but not for a coloured logo — the brand green came
-     out magenta over the cream Study section. It now swaps to an explicit
-     light state instead, which is predictable and keeps the mark on-brand.
+     out magenta. It carries an explicit state instead, which is predictable
+     and keeps the mark on-brand.
 
-     Study says when: it opens with a dark fly-over before its cream shows,
-     so the section's own position is no longer the answer (lib/events.js). */
+     The site is white, so the bar is dark ink by default and turns light only
+     over the deep emerald ground: any region marked data-nav="dark" (the
+     footer), and the Study fly-over, which says so itself with NAV_TONE
+     because its ground gives way to white partway through its pin. */
   useEffect(() => {
-    const onTone = (e) => setOnLight(e.detail === 'light')
+    const onTone = (e) => setFlyoverDark(e.detail === 'dark')
     window.addEventListener(NAV_TONE, onTone)
     return () => window.removeEventListener(NAV_TONE, onTone)
   }, [])
+
+  useEffect(() => {
+    if (!ready) return
+    const active = new Set()
+    const triggers = [...document.querySelectorAll('[data-nav="dark"]')].map((el) =>
+      ScrollTrigger.create({
+        trigger: el,
+        start: 'top 72px',
+        end: 'bottom 72px',
+        onToggle: (self) => {
+          if (self.isActive) active.add(el)
+          else active.delete(el)
+          setRegionDark(active.size > 0)
+        },
+      })
+    )
+    return () => triggers.forEach((t) => t.kill())
+  }, [ready])
 
   // entrance
   useEffect(() => {
@@ -83,10 +107,10 @@ export default function Nav({ ready }) {
 
   return (
     <>
-      <header className={`nav ${onLight ? 'is-light' : ''}`} ref={navRef} style={{ opacity: 0 }}>
+      <header className={`nav ${onDark ? 'is-dark' : ''}`} ref={navRef} style={{ opacity: 0 }}>
         <a className="nav__logo" href="#top" onClick={(e) => go(e, 'body')} data-cursor="Top">
           {/* the tagline is dropped at nav size: it is unreadable below ~150px */}
-          <Logo variant="compact" tone={onLight ? 'dark' : 'light'} className="nav__logo-img" />
+          <Logo variant="compact" tone={onDark ? 'light' : 'dark'} className="nav__logo-img" />
         </a>
 
         <nav className="nav__links">

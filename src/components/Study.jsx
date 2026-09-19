@@ -16,12 +16,12 @@ const FLIGHT = {
   length: 1.8,
   hud: [0, 0.1],
   converge: [0, 0.3],
-  /** the aircraft is inside the cloud: the ground gives way to cream here */
+  /** the aircraft is inside the cloud: the ground gives way to white here */
   whiteout: 0.34,
   clear: [0.36, 0.56],
   reveal: [0.4, 0.6],
   plane: [0.1, 0.92],
-  /** the nav swaps to its light state with the whiteout */
+  /** the nav turns back to dark ink with the whiteout */
   light: 0.33,
 }
 
@@ -138,7 +138,7 @@ function MeritChart() {
  *
  * It opens with a fly-over, built the way the reference builds its own —
  * layered art moved by one scrubbed timeline, no WebGL. The section pins;
- * cloud converges over the ground far below into a cream whiteout, then
+ * cloud converges over the ground far below into a white whiteout, then
  * parts off the page while the aircraft crosses over the heading.
  */
 export default function Study() {
@@ -149,8 +149,6 @@ export default function Study() {
 
   useEffect(() => {
     const section = root.current
-    // read before pinning, which wraps the section in a spacer
-    const next = section.nextElementSibling
     const setTone = toneSetter()
 
     const ctx = gsap.context(() => {
@@ -169,12 +167,6 @@ export default function Study() {
         )
 
       if (!fly) {
-        ScrollTrigger.create({
-          trigger: section,
-          start: 'top 72px',
-          end: 'bottom 72px',
-          onToggle: (self) => setTone(self.isActive ? 'light' : 'dark'),
-        })
         gsap.fromTo(
           '.study__top > *, .study__intro > *',
           { y: 40, opacity: 0 },
@@ -228,7 +220,8 @@ export default function Study() {
           onUpdate: (self) => setTone(self.progress > FLIGHT.light ? 'light' : 'dark'),
           onLeave: () => setDone(true),
           onEnterBack: () => setDone(false),
-          onLeaveBack: () => setTone('dark'),
+          // back above the pin, the white catalogue is under the bar again
+          onLeaveBack: () => setTone('light'),
         },
       })
 
@@ -311,16 +304,6 @@ export default function Study() {
         .set({}, {}, 1)
 
       columns({ pinnedContainer: section })
-
-      // the section's cream ends where the next section begins
-      if (next) {
-        ScrollTrigger.create({
-          trigger: next,
-          start: 'top 72px',
-          onEnter: () => setTone('dark'),
-          onLeaveBack: () => setTone('light'),
-        })
-      }
     }, root)
 
     return () => ctx.revert()

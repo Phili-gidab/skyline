@@ -12,6 +12,10 @@ import { BRAND } from '../data/site'
  *
  * Sizing is driven by the `--logo-w` custom property so the tagline scales
  * with the artwork rather than needing a size per usage.
+ *
+ * `tone` names the ground's lightness it sits on the opposite of: 'light'
+ * art (cream lettering) for the deep emerald, 'dark' (the full-colour
+ * lockup) for white.
  */
 export default function Logo({ variant = 'full', tone = 'light', className = '', ...rest }) {
   if (variant === 'compact') {
@@ -26,8 +30,12 @@ export default function Logo({ variant = 'full', tone = 'light', className = '',
   }
 
   return (
-    <span className={`logo ${className}`} {...rest}>
-      <img className="logo__art" src="/logo-lockup.svg" alt={BRAND.name} />
+    <span className={`logo logo--${tone} ${className}`} {...rest}>
+      <img
+        className="logo__art"
+        src={tone === 'dark' ? '/logo-lockup-color.svg' : '/logo-lockup.svg'}
+        alt={BRAND.name}
+      />
       <span className="logo__tagline">{BRAND.logoTagline}</span>
     </span>
   )

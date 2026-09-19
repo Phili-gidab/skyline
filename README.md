@@ -146,9 +146,9 @@ Generated assets, all from the one script so they cannot drift:
 
 | File | Use |
 | --- | --- |
-| `logo-lockup.svg` | mark + wordmark + TRAVEL SOLUTION, dark grounds — paired with live tagline |
-| `logo-lockup-color.svg` | same, original brand colour, for light grounds |
-| `logo-compact.svg` | mark + wordmark only — the nav, where a tagline is unreadable |
+| `logo-lockup.svg` | mark + wordmark + TRAVEL SOLUTION, cream lettering — the footer's deep emerald |
+| `logo-lockup-color.svg` | same, original brand colour — white grounds (the preloader) |
+| `logo-compact.svg` / `logo-compact-dark.svg` | mark + wordmark only — the nav, light over deep emerald, dark over white |
 | `logo.svg` / `logo-color.svg` | full lockup including the traced tagline, if ever needed flat |
 | `favicon.svg` | the mark alone; anything with type is illegible at 32px |
 
@@ -163,14 +163,21 @@ better than any trace — particularly for the tagline.
 
 All tokens live at the top of [src/styles/global.css](src/styles/global.css).
 
-- **Ground** `--ink #06130d`, `--ink-2`, `--forest` — a near-black green rather than pure black
-- **Paper** `--bone`, `--bone-2` — warm off-white, used inverted for the Study section
-- **Accents** `--gold #c9a24b` for editorial highlights, `--signal #57e39a` for live/3D elements
+White leads; emerald is the secondary colour and the accent.
+
+- **Ground** `--white`, with `--mist #f3f7f4` for alternating sections (Destinations, Careers)
+- **Text** `--ink #0d1d16`, `--text-2` / `--text-3` (ink at 74% / 58%), `--sage` for labels
+- **Accent** `--emerald #0b7d3f` — a shade deeper than the logo's `#0e8f47`, which reads at only
+  4.2:1 as small text on white; `#0b7d3f` clears AA on white and on the mist
+- **Secondary ground** `--emerald-deep #0b3a26` — the split-flap boards, the arrivals board, the
+  fly-over's contour ground, the footer and the mobile menu. On it, text is `--on-deep*` and the
+  accent is `--mint-glow #7fdca6`, since the brand green is too dark to read there
 - Type pairing: an uppercase display serif against a tight grotesk, with mono for all labels
 - The giant hero wordmark is **Archivo at width 125** — a hairline serif goes spindly at 21vw and
   reads as noise rather than mass
 
-Film grain, a vignette and a difference-blend cursor sit above everything as fixed overlays.
+A faint multiplied grain, a light vignette and an emerald cursor sit above everything as fixed
+overlays. The cursor no longer uses a difference blend, which turned green grounds magenta.
 
 ## Section map
 
@@ -185,16 +192,16 @@ Film grain, a vignette and a difference-blend cursor sit above everything as fix
 | 05 Record | An arrivals board, bookending the hero's departures board: split-flap stats that riffle in row by row and replay in either scroll direction, then a WhatsApp / Telegram call to action |
 
 **On the ground, below:** Destinations (pinned horizontal gallery of postcards — full-colour photo,
-details on a cream panel, inclusions and a WhatsApp link on hover or focus), Service catalogue
-(accordion, from the client's PDF), Study (the cream section, an offer sheet for Post University:
+details on a white panel, inclusions and a WhatsApp link on hover or focus), Service catalogue
+(accordion, from the client's PDF), Study (an offer sheet for Post University:
 a turning seal, four key figures, the programmes with the listed fee struck through, and the merit
 awards as a column chart; opened by the fly-over below), Careers, Contact, and the Footer — navigation into every section, service line and destination (a
 footer service link opens that line of the catalogue), one compact contact column, and an outlined
-wordmark that fills gold on hover.
+wordmark that fills mint on hover, all on the deep emerald ground.
 
 **The Study fly-over.** Study pins for 1.8 screens of scroll under layered art, moved by one
 scrubbed GSAP timeline ([Study.jsx](src/components/Study.jsx), `FLIGHT`): the ground far below as a
-gold contour map, cloud converging from three sides into a whiteout, then parting off the page while
+mint contour map on deep emerald, cloud converging from three sides into a whiteout, then parting off the page while
 the 777 — seen from above, with a soft shadow — crosses over the heading. The page is back by just
 past halfway; the aircraft finishes its pass over it. No WebGL: an earlier real-time shader version
 looked muddy, and layered cut-outs are how the reference builds its own sequence.
@@ -207,7 +214,8 @@ The art in `public/flyover/` was rendered offline, not sourced:
   `aircraft.glb` straight down (orthographic, three's RoomEnvironment); `make_plane.py` trims it,
   sizes it to 1600/2800px and blurs the silhouette into its shadow.
 
-The whiteout (`.flyover__fog`) is exactly `--bone-2`, so lifting it reveals the page with no seam.
+The whiteout (`.flyover__fog`) is exactly `--white`, the section's ground, so lifting it reveals
+the page with no seam.
 Nav links to Study land at the end of the pin, on the content. With reduced motion there is no pin.
 
 The split-flap board ([SplitFlap.jsx](src/components/SplitFlap.jsx)) is a Solari display: each cell
@@ -215,12 +223,12 @@ riffles the charset and settles left to right.
 
 ## The nav
 
-The bar is fixed over both dark sections and one cream one (Study). It used
-`mix-blend-mode: difference`, which keeps text legible on any ground — but inverts
-colour, so the logo's brand green came out **magenta** over cream. It now carries an
-explicit `is-light` state, which swaps both the text colour and the logo file. Study sets it
-through the `NAV_TONE` event ([events.js](src/lib/events.js)): the section opens with a dark
-fly-over, so its position alone no longer says when its cream is actually showing. A gradient scrim sits behind the bar at all times so
+The site is white, so the bar is dark ink on a white scrim by default. Over the deep emerald it
+carries an explicit `is-dark` state, which swaps both the text colour and the logo file. (It once
+used `mix-blend-mode: difference`, which keeps text legible on any ground but inverted the logo's
+brand green to **magenta**.) Three things turn it dark: any region marked `data-nav="dark"` (the
+footer), the open mobile menu, and the Study fly-over, which says so through the `NAV_TONE` event
+([events.js](src/lib/events.js)) because its ground gives way to white partway through its pin. A gradient scrim sits behind the bar at all times so
 content scrolling underneath stays readable; that is deliberately CSS-only rather than a
 JS-toggled class, which left the bar briefly unreadable mid-scroll.
 
@@ -241,9 +249,9 @@ JS-toggled class, which left the bar briefly unreadable mid-scroll.
   `fromTo`'s hidden start state as its own start, so scrolling *back up* reversed the fade-out into
   opacity 0 — the copy vanished while the aircraft kept animating. The fade is now a pure function
   of the panel's position (`Story.jsx`), which has no history and is right in both directions.
-- Body copy on the dark ground uses `--text-2` / `--text-3`, and no text is set below 0.72rem (the
-  cursor label excepted). The edge vignette is capped at 42% black because it sits over every
-  section, exactly where the left-aligned copy lives.
+- Body copy uses `--text-2` / `--text-3`, and no text is set below 0.72rem (the cursor label
+  excepted). Small text in the accent uses `--emerald`, never the logo's own green (4.2:1 on
+  white). The edge vignette is kept to 6% because it sits over every section.
 - Every `.panel--fade` fades out, the last one included. Skipping the last left "THE RECORD" painted
   on top of the Destinations section below it, because the panels sit over a fixed stage.
 - **three's GLTFLoader renames nodes.** It runs every node name through

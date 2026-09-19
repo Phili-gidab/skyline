@@ -6,49 +6,6 @@ import Aircraft from './Aircraft.jsx'
 import { stage, sampleBeats } from './choreography.js'
 
 /* ------------------------------------------------------------------
-   Environment — a dark studio with a horizon glow, so the aircraft
-   reads as a lit product rather than a floating object
-   ------------------------------------------------------------------ */
-
-function Stars({ count = 500 }) {
-  const geo = useMemo(() => {
-    const positions = new Float32Array(count * 3)
-    for (let i = 0; i < count; i++) {
-      // far enough out that the portrait camera pull-back never enters the shell
-      const r = 55 + Math.random() * 45
-      const theta = Math.random() * Math.PI * 2
-      const phi = Math.acos(2 * Math.random() - 1)
-      positions[i * 3] = r * Math.sin(phi) * Math.cos(theta)
-      positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta)
-      positions[i * 3 + 2] = r * Math.cos(phi)
-    }
-    const g = new THREE.BufferGeometry()
-    g.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    return g
-  }, [count])
-
-  const ref = useRef(null)
-  useFrame((_, delta) => {
-    if (ref.current) ref.current.rotation.y += delta * 0.008
-  })
-
-  return (
-    <points ref={ref} geometry={geo}>
-      {/* sizeAttenuation off: stars stay a constant pixel size whatever the
-          camera distance, which varies hugely between desktop and portrait */}
-      <pointsMaterial
-        size={1.7}
-        color="#ece6d7"
-        transparent
-        opacity={0.5}
-        sizeAttenuation={false}
-        depthWrite={false}
-      />
-    </points>
-  )
-}
-
-/* ------------------------------------------------------------------
    Rig — reads scroll progress and eases the camera and model toward
    the sampled beat. The easing is what keeps fast scrolling smooth.
    ------------------------------------------------------------------ */
@@ -155,6 +112,11 @@ function Rig({ onReady }) {
   )
 }
 
+/* ------------------------------------------------------------------
+   Environment — a bright studio with a soft green floor, so a white
+   aircraft on a white page still reads as a lit, solid object
+   ------------------------------------------------------------------ */
+
 /**
  * A generated image-based environment.
  *
@@ -167,17 +129,17 @@ function Rig({ onReady }) {
  * Deliberately NOT three's RoomEnvironment: that renders a whole box scene
  * per generation, which stalls first paint on software GL and low-end GPUs —
  * the machines much of this site's audience is on. A 64x32 gradient costs
- * almost nothing and, unlike a neutral white studio, keeps the scene's own
- * palette so the green rim light is not washed out.
+ * almost nothing, and its darker green floor gives the white airframe the
+ * shading it needs against a white page.
  */
 function buildEnvTexture() {
   const W = 64
   const H = 32
   const data = new Uint8Array(W * H * 4)
 
-  const sky = [0.13, 0.20, 0.17]
-  const ground = [0.03, 0.06, 0.05]
-  const key = [1.0, 0.96, 0.9]
+  const sky = [0.9, 0.93, 0.91]
+  const ground = [0.3, 0.38, 0.34]
+  const key = [1.0, 0.99, 0.96]
 
   for (let y = 0; y < H; y++) {
     // 0 at the top of the sphere, 1 at the bottom
@@ -236,18 +198,16 @@ function StudioEnvironment({ intensity = 0.55 }) {
 function Lights() {
   return (
     <>
-      {/* The aircraft is white, so the green must stay a rim only. Earlier
-          values tinted the whole fuselage green. Keep the key dominant and
-          well ahead of the rim, and keep ambient close to neutral. */}
-      <ambientLight intensity={0.26} color="#2f3a38" />
+      {/* A white aircraft on a white page: the form has to come from shading,
+          so the key rakes hard from above left and the floor stays green-grey,
+          leaving the underside and the far side of the fuselage in soft shade. */}
+      <ambientLight intensity={0.3} color="#eef4f0" />
       {/* key: high and camera-left, raking along the fuselage */}
-      <directionalLight position={[-6, 5, 4]} intensity={3.6} color="#fff8ec" />
-      {/* rim: behind and to the right, just enough to cut the silhouette out */}
-      <directionalLight position={[7, 1.5, -6]} intensity={0.85} color="#cdeadb" />
-      {/* warm bounce so the underside and gear are not dead black */}
-      <directionalLight position={[1, -5, 2]} intensity={0.55} color="#c9a24b" />
-      <hemisphereLight args={['#3d4744', '#0a1610', 0.26]} />
-      <StudioEnvironment intensity={0.55} />
+      <directionalLight position={[-6, 5, 4]} intensity={2.8} color="#ffffff" />
+      {/* rim: behind and to the right, a cool green edge */}
+      <directionalLight position={[7, 1.5, -6]} intensity={0.6} color="#cfe9da" />
+      <hemisphereLight args={['#ffffff', '#6f8a7c', 0.5]} />
+      <StudioEnvironment intensity={0.75} />
     </>
   )
 }
@@ -314,7 +274,6 @@ export default function Stage() {
           style={{ pointerEvents: 'none' }}
         >
           <Lights />
-          <Stars />
           <Rig onReady={() => setReady(true)} />
         </Canvas>
       </GLBoundary>

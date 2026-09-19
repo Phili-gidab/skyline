@@ -69,7 +69,7 @@ export default function Preloader({ onDone }) {
   return (
     <div className="preloader" ref={root} style={{ clipPath: 'inset(0% 0% 0% 0%)' }}>
       <div className="preloader__top">
-        <Logo className="preloader__logo" />
+        <Logo className="preloader__logo" tone="dark" />
         <span className="label">
           {BRAND.city} — {BRAND.country}
         </span>

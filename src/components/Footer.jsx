@@ -67,7 +67,7 @@ export default function Footer() {
   const maps = `https://www.google.com/maps/search/${encodeURIComponent(BRAND.mapsQuery)}`
 
   return (
-    <footer className="footer" ref={root}>
+    <footer className="footer" ref={root} data-nav="dark">
       <div className="footer__top">
         <div className="footer__col footer__brand">
           <Logo className="footer__logo" />

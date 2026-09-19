@@ -17,9 +17,9 @@ ONLY = sys.argv[3].split(',') if len(sys.argv) > 3 else None
 os.makedirs(OUT, exist_ok=True)
 os.makedirs(PREVIEW, exist_ok=True)
 
-INK = np.array([6, 19, 13], np.float32)
-CREAM = np.array([246, 242, 232], np.float32)
-GOLD = np.array([201, 162, 75], np.float32)
+INK = np.array([11, 58, 38], np.float32)       # the deep emerald ground
+CREAM = np.array([255, 255, 255], np.float32)  # the page
+GOLD = np.array([127, 220, 166], np.float32)   # contour lines, the mint accent
 LIT = np.array([255, 253, 247], np.float32)
 SHADE = np.array([128, 142, 152], np.float32)
 
@@ -140,7 +140,7 @@ def ground(w=2400, h=1500, seed=3):
     major = (np.floor(f + 0.5).astype(np.int32) % 5) == 0
     line = np.clip(np.where(major, 1.1, 0.6) + 0.5 - dist, 0, 1)
     a = line * np.where(major, 0.5, 0.2)
-    tint = 1.0 + 0.9 * smoothstep(0.3, 0.8, hgt)
+    tint = 0.72 + 0.5 * smoothstep(0.3, 0.8, hgt)
     base = np.clip(INK * tint[..., None], 0, 255)
     rgb = base * (1 - a[..., None]) + GOLD * a[..., None]
     return rgb.clip(0, 255).astype(np.uint8)
