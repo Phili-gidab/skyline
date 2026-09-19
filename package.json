@@ -8,7 +8,11 @@
     "build": "vite build",
     "preview": "vite preview --port 4173",
     "model:optimize": "gltf-transform optimize model-source/aircraft-source.glb public/models/aircraft.glb --compress meshopt --simplify-ratio 0.45 --simplify-error 0.0012 --simplify-lock-border true --texture-size 1024 --texture-compress webp --join false --flatten false --instance false",
-    "model:inspect": "gltf-transform inspect public/models/aircraft.glb"
+    "model:inspect": "gltf-transform inspect public/models/aircraft.glb",
+    "seed:export": "node tools/export-seed.mjs",
+    "api:up": "docker compose -f docker/docker-compose.yml up -d --build",
+    "api:setup": "docker compose -f docker/docker-compose.yml exec php php /var/www/php-api/seed.php /var/www/skyline-api-config.php",
+    "api:down": "docker compose -f docker/docker-compose.yml down"
   },
   "dependencies": {
     "@react-three/fiber": "^8.17.10",
@@ -17,6 +21,7 @@
     "lenis": "^1.1.14",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.6",
     "split-type": "^0.3.4",
     "three": "^0.169.0"
   },

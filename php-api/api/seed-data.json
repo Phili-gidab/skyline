@@ -1,0 +1,496 @@
+{
+  "singles": {
+    "brand": {
+      "tagline": "You Belong Everywhere",
+      "mission": "To provide professional, transparent and client-focused support for international study, work and travel opportunities.",
+      "address": "22 Bole Road, Bimmer, Office 704",
+      "landmark": "In front of Awaris Hotel",
+      "mapsQuery": "22 Bole Road, Awaris Hotel, Addis Ababa",
+      "whatsapp": "+251 921 470 395",
+      "telegram": "SKYLINE_TRAVEL_SOLUTION",
+      "instagram": "skyline.travel.so",
+      "email": "managmentskyline@gmail.com",
+      "phones": [
+        {
+          "display": "011 666 2806",
+          "tel": "+251116662806"
+        },
+        {
+          "display": "098 497 5570",
+          "tel": "+251984975570"
+        },
+        {
+          "display": "098 886 6060",
+          "tel": "+251988866060"
+        }
+      ],
+      "hours": [
+        "Monday — Saturday",
+        "Walk in, or book ahead on WhatsApp"
+      ],
+      "hoursNote": "Messages are answered outside office hours.",
+      "catalogueUrl": "/skyline-service-catalogue.pdf"
+    },
+    "hero": {
+      "intro": "Visa consultancy — Bole Road",
+      "title": "Work, study and visit visas.",
+      "subtitle": "You pay nothing until approval."
+    },
+    "scholarship": {
+      "school": "Post University",
+      "location": "Connecticut, USA",
+      "founded": "Est. 1890",
+      "intake": "Open intake — Fall 2026",
+      "programs": [
+        {
+          "level": "Undergraduate",
+          "fee": "$35,736",
+          "after": "$8,850 – $10,640 / yr"
+        },
+        {
+          "level": "MBA",
+          "fee": "$13,140",
+          "after": "$2,500 scholarship"
+        },
+        {
+          "level": "MS — Business Intelligence",
+          "fee": "$12,400",
+          "after": "$2,500 scholarship"
+        },
+        {
+          "level": "MS — Computer Science",
+          "fee": "$11,350",
+          "after": "$2,500 scholarship"
+        }
+      ],
+      "tiers": [
+        {
+          "gpa": "3.8+",
+          "award": "$25,000"
+        },
+        {
+          "gpa": "3.5+",
+          "award": "$22,500"
+        },
+        {
+          "gpa": "3.0+",
+          "award": "$20,000"
+        },
+        {
+          "gpa": "2.5+",
+          "award": "$15,000"
+        },
+        {
+          "gpa": "2.0+",
+          "award": "$10,000"
+        }
+      ]
+    },
+    "notice": {
+      "text": "Visa approval, admission, scholarships, work permits and immigration decisions are made solely by the relevant institutions and government authorities. Skyline Travel Solution provides professional guidance and application support but cannot guarantee approval or a specific outcome."
+    }
+  },
+  "collections": {
+    "destinations": [
+      {
+        "slug": "italy",
+        "country": "Italy / Schengen",
+        "city": "Rome",
+        "iata": "FCO",
+        "board": "ROMA",
+        "services": [
+          "Study",
+          "Work",
+          "Visit"
+        ],
+        "blurb": "The one desk that runs all three service lines: university admission, employer-sponsored work permits and Schengen visit visas.",
+        "points": [
+          "Admission and CIMEA / DOV guidance",
+          "Work permit application guidance",
+          "Schengen visit visa files",
+          "Embassy and VFS appointments"
+        ],
+        "photo": "https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&q=70"
+      },
+      {
+        "slug": "ireland",
+        "country": "Ireland",
+        "city": "Cobh, County Cork",
+        "iata": "DUB",
+        "board": "DUBLIN",
+        "services": [
+          "Visit"
+        ],
+        "blurb": "Visit visas for tourism, family visits, business and events, built from a personalised checklist and reviewed before lodging.",
+        "points": [
+          "Personalised document checklist",
+          "Invitation-letter guidance",
+          "Financial-document review",
+          "Cover letter preparation"
+        ],
+        "photo": "https://images.unsplash.com/photo-1590089415225-401ed6f9db8e?auto=format&fit=crop&q=70"
+      },
+      {
+        "slug": "armenia",
+        "country": "Armenia",
+        "city": "Yerevan",
+        "iata": "EVN",
+        "board": "YEREVAN",
+        "services": [
+          "Visit"
+        ],
+        "blurb": "Visit visa applications prepared from the application form to the travel itinerary, and organised into one complete file.",
+        "points": [
+          "Application form guidance",
+          "Flight itinerary guidance",
+          "Accommodation documentation",
+          "Application file organisation"
+        ],
+        "photo": "https://images.pexels.com/photos/30454809/pexels-photo-30454809.jpeg?auto=compress&cs=tinysrgb"
+      },
+      {
+        "slug": "turkey",
+        "country": "Turkey",
+        "city": "Istanbul",
+        "iata": "IST",
+        "board": "ISTANBUL",
+        "services": [
+          "Work",
+          "Visit"
+        ],
+        "blurb": "Employer-sponsored work permits and visit visas. Work availability depends on current immigration rules and employer sponsorship.",
+        "points": [
+          "Work eligibility guidance",
+          "Employer and document review",
+          "Visit visa preparation",
+          "Pre-departure preparation"
+        ],
+        "photo": "https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?auto=format&fit=crop&q=70"
+      },
+      {
+        "slug": "canada",
+        "country": "Canada",
+        "city": "Toronto",
+        "iata": "YYZ",
+        "board": "TORONTO",
+        "services": [
+          "Visit"
+        ],
+        "blurb": "Visit visas for tourism, family visits and business trips, with financial documents reviewed and the file organised before your appointment.",
+        "points": [
+          "Visa eligibility assessment",
+          "Financial-document review",
+          "Travel insurance guidance",
+          "Embassy / VFS appointments"
+        ],
+        "photo": "https://images.unsplash.com/photo-1517090504586-fde19ea6066f?auto=format&fit=crop&q=70"
+      },
+      {
+        "slug": "usa",
+        "country": "United States",
+        "city": "New York",
+        "iata": "JFK",
+        "board": "NEW YORK",
+        "services": [
+          "Visit"
+        ],
+        "blurb": "Visit visa preparation for tourism, family visits, business and events: application form guidance, a cover letter and an organised file.",
+        "points": [
+          "Application form preparation",
+          "Cover letter preparation",
+          "Financial-document review",
+          "Embassy appointment guidance"
+        ],
+        "photo": "https://images.unsplash.com/photo-1485871981521-5b1fd3805eee?auto=format&fit=crop&q=70"
+      },
+      {
+        "slug": "brazil",
+        "country": "Brazil",
+        "city": "Rio de Janeiro",
+        "iata": "GRU",
+        "board": "SAO PAULO",
+        "services": [
+          "Visit"
+        ],
+        "blurb": "Visit visas for holidays, family visits and events, with itinerary, accommodation and insurance documents prepared alongside the application.",
+        "points": [
+          "Flight itinerary guidance",
+          "Accommodation documentation",
+          "Travel insurance guidance",
+          "Travel preparation"
+        ],
+        "photo": "https://images.unsplash.com/photo-1483729558449-99ef09a8c325?auto=format&fit=crop&q=70"
+      },
+      {
+        "slug": "mexico",
+        "country": "Mexico",
+        "city": "Mexico City",
+        "iata": "MEX",
+        "board": "MEXICO",
+        "services": [
+          "Visit"
+        ],
+        "blurb": "Tourist and business visit visas, prepared from a personalised checklist and organised into a complete application file.",
+        "points": [
+          "Personalised document checklist",
+          "Invitation-letter guidance",
+          "Cover letter preparation",
+          "Application file organisation"
+        ],
+        "photo": "https://images.unsplash.com/photo-1585464231875-d9ef1f5ad396?auto=format&fit=crop&q=70"
+      },
+      {
+        "slug": "austria",
+        "country": "Austria",
+        "city": "Vienna",
+        "iata": "VIE",
+        "board": "WIEN",
+        "services": [
+          "Study"
+        ],
+        "blurb": "University and course selection, admission applications and scholarship guidance, through to the visa file and pre-departure.",
+        "points": [
+          "University and course selection",
+          "Admission application support",
+          "Motivation letter and CV support",
+          "Pre-enrollment guidance"
+        ],
+        "photo": "https://images.unsplash.com/photo-1516550893923-42d28e5677af?auto=format&fit=crop&q=70"
+      },
+      {
+        "slug": "china",
+        "country": "China",
+        "city": "Beijing",
+        "iata": "PEK",
+        "board": "BEIJING",
+        "services": [
+          "Study"
+        ],
+        "blurb": "Study applications from eligibility assessment to online portal submission, with scholarship guidance and a prepared visa file.",
+        "points": [
+          "Eligibility assessment",
+          "Scholarship application guidance",
+          "Online application portal",
+          "Embassy appointment guidance"
+        ],
+        "photo": "https://images.unsplash.com/photo-1547981609-4b6bfe67ca0b?auto=format&fit=crop&q=70"
+      }
+    ],
+    "catalogue": [
+      {
+        "slug": "student",
+        "title": "Student Visas",
+        "ask": "student visas",
+        "lead": "We support students throughout the international study application process, from initial eligibility assessment to pre-departure preparation.",
+        "includes": [
+          "University and course selection guidance",
+          "Eligibility assessment",
+          "University admission application support",
+          "Scholarship application guidance",
+          "Document preparation and review",
+          "Statement of Purpose / Motivation Letter support",
+          "CV preparation",
+          "Online application portal assistance",
+          "Pre-enrollment guidance",
+          "CIMEA / DOV guidance where applicable",
+          "Embassy appointment and visa-file preparation guidance",
+          "Pre-departure travel guidance"
+        ],
+        "destinations": [
+          "Italy",
+          "Austria",
+          "Hungary",
+          "China"
+        ],
+        "note": "Additional destinations may be available depending on the program, intake and applicant profile."
+      },
+      {
+        "slug": "work",
+        "title": "Work Visas & Permits",
+        "ask": "work visas",
+        "lead": "We assist eligible applicants with understanding and preparing for employer-sponsored work and work-permit processes.",
+        "includes": [
+          "Work opportunity and eligibility guidance",
+          "Employer and document review guidance",
+          "Work permit application process guidance",
+          "Work visa document preparation support",
+          "Application review",
+          "Embassy / Visa Application Centre guidance",
+          "Appointment assistance where available",
+          "Travel and pre-departure preparation"
+        ],
+        "destinations": [
+          "Italy",
+          "Turkey"
+        ],
+        "note": "Availability depends on current immigration rules, employer sponsorship and applicant eligibility."
+      },
+      {
+        "slug": "visit",
+        "title": "Visit & Tourist Visas",
+        "ask": "visit visas",
+        "lead": "Travel for tourism, family visits, business visits, events and holidays with professional application preparation support.",
+        "includes": [
+          "Visa eligibility assessment",
+          "Personalised document checklist",
+          "Application form guidance and preparation",
+          "Invitation-letter guidance where applicable",
+          "Accommodation and travel documentation guidance",
+          "Flight itinerary guidance",
+          "Travel insurance guidance",
+          "Financial-document review",
+          "Cover letter preparation support",
+          "Embassy / VFS appointment guidance",
+          "Application file organisation",
+          "Travel preparation guidance"
+        ],
+        "destinations": [
+          "Italy / Schengen",
+          "Ireland",
+          "Armenia",
+          "Turkey",
+          "Canada",
+          "USA",
+          "Brazil",
+          "Mexico"
+        ],
+        "note": "And other available destinations, subject to requirements and eligibility."
+      }
+    ],
+    "extras": [
+      {
+        "title": "Flight booking"
+      },
+      {
+        "title": "Hotel and accommodation arrangements"
+      },
+      {
+        "title": "Travel itinerary planning"
+      },
+      {
+        "title": "Travel insurance"
+      },
+      {
+        "title": "Document preparation"
+      },
+      {
+        "title": "Pre-departure consultation"
+      },
+      {
+        "title": "Airport and travel guidance"
+      }
+    ],
+    "why": [
+      {
+        "title": "Personalised consultation",
+        "body": "Guidance based on your travel, study or work goal."
+      },
+      {
+        "title": "Document support",
+        "body": "Careful review and organisation of the required application documents."
+      },
+      {
+        "title": "Application guidance",
+        "body": "Support through the relevant application stages and procedures."
+      },
+      {
+        "title": "Client-focused service",
+        "body": "Clear communication and professional support throughout the process."
+      },
+      {
+        "title": "Pre-departure support",
+        "body": "Travel preparation and practical guidance before departure."
+      },
+      {
+        "title": "Multiple service areas",
+        "body": "Student, work and visit visa support under one company."
+      }
+    ],
+    "process": [
+      {
+        "title": "Consultation",
+        "body": "We start by understanding your goal: study, work or travel."
+      },
+      {
+        "title": "Assessment",
+        "body": "Your eligibility for the route is reviewed before anything is prepared."
+      },
+      {
+        "title": "Preparation",
+        "body": "Documents are gathered, reviewed and organised into a complete file."
+      },
+      {
+        "title": "Application",
+        "body": "The application is prepared and submitted, as applicable."
+      },
+      {
+        "title": "Visa process",
+        "body": "We follow the relevant embassy or VFS procedure with you."
+      },
+      {
+        "title": "Departure",
+        "body": "Travel preparation and practical guidance before you fly."
+      }
+    ],
+    "stats": [
+      {
+        "value": "500",
+        "suffix": "+",
+        "label": "Visas issued",
+        "status": "And counting"
+      },
+      {
+        "value": "#destinations",
+        "suffix": "",
+        "label": "Live destinations",
+        "status": "Open now"
+      },
+      {
+        "value": "#services",
+        "suffix": "",
+        "label": "Service lines",
+        "status": "Study · work · visit"
+      },
+      {
+        "value": "0",
+        "suffix": " birr",
+        "label": "Payable before approval",
+        "status": "Pay on approval"
+      }
+    ],
+    "specs": [
+      {
+        "value": "45",
+        "unit": " days",
+        "label": "Turkey and Italy work visa"
+      },
+      {
+        "value": "60",
+        "unit": " days",
+        "label": "Schengen visit visa"
+      },
+      {
+        "value": "#destinations",
+        "unit": "",
+        "label": "Destinations, three service lines"
+      },
+      {
+        "value": "0",
+        "unit": " birr",
+        "label": "Payable before approval"
+      }
+    ],
+    "roles": [
+      {
+        "title": "Application Agent",
+        "type": "On-site / Full time",
+        "body": "Experience with Italy and Austria files required. Other destinations a strong plus."
+      },
+      {
+        "title": "Customer Service Representative",
+        "type": "On-site / Negotiable salary",
+        "body": "Any education level. Must be ready to start immediately and make every client experience memorable."
+      }
+    ]
+  }
+}

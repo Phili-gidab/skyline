@@ -1,18 +1,19 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ROLES, BRAND } from '../data/site'
+import CareerForm from './forms/CareerForm'
 
 /**
  * Open roles as boarding passes: a cream ticket with the position, terms and
- * requirements, and a tear-off stub carrying the one action — send a CV.
+ * requirements, and a tear-off stub carrying the one action — apply, with a
+ * CV, in a dialog (forms/CareerForm). It reaches the admin and the office.
  *
  * The route reads ADD -> 704 because that is where the job is: Addis Ababa,
  * Office 704 on Bole Road.
  */
 
-function Pass({ role, index }) {
+function Pass({ role, index, onApply }) {
   const code = `SKY ${String(index + 1).padStart(3, '0')}`
-  const mail = `mailto:${BRAND.email}?subject=${encodeURIComponent(`Application — ${role.title}`)}`
 
   return (
     <article className="pass">
@@ -57,9 +58,9 @@ function Pass({ role, index }) {
           <div className="pass__code">{code}</div>
           <div className="pass__barcode" aria-hidden="true" />
         </div>
-        <a className="pass__cta" href={mail} data-cursor="Apply">
-          Send your CV ↗
-        </a>
+        <button type="button" className="pass__cta" onClick={() => onApply(role.title)} data-cursor="Apply">
+          Apply for this role ↗
+        </button>
       </div>
     </article>
   )
@@ -67,6 +68,9 @@ function Pass({ role, index }) {
 
 export default function Careers() {
   const root = useRef(null)
+  const [applying, setApplying] = useState(null)
+  // stable, so the open dialog is not re-shown on every render
+  const close = useCallback(() => setApplying(null), [])
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -100,7 +104,7 @@ export default function Careers() {
           </h2>
         </div>
         <p className="careers__intro">
-          Our team is expanding. Send a CV and a motivational letter to{' '}
+          Our team is expanding. Apply for a role below with your CV — it goes straight to the office. Or email{' '}
           <a href={`mailto:${BRAND.email}`}>{BRAND.email}</a>, or reach us on{' '}
           <a href={BRAND.telegramUrl} target="_blank" rel="noreferrer">
             Telegram
@@ -111,9 +115,11 @@ export default function Careers() {
 
       <div className="passes">
         {ROLES.map((r, i) => (
-          <Pass key={r.title} role={r} index={i} />
+          <Pass key={r.title} role={r} index={i} onApply={setApplying} />
         ))}
       </div>
+
+      {applying && <CareerForm role={applying} onClose={close} />}
     </section>
   )
 }

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { BRAND } from '../data/site'
 import { useMagnetic } from '../lib/useMagnetic'
+import EnquiryForm from './forms/EnquiryForm'
 
 /* Contact details follow the client's own "Contact us" block and service
    catalogue exactly — address, three landlines, WhatsApp and Telegram. */
@@ -97,6 +98,20 @@ export default function Contact() {
         </a>
       </div>
 
+      <div className="contact__form" id="enquiry">
+        <div className="contact__form-intro">
+          <span className="eyebrow">Open a file online</span>
+          <h3 className="contact__form-title">
+            Tell us where <em>you are going</em>
+          </h3>
+          <p className="contact__cta-copy">
+            Leave your number and a consultant will call you back, usually the same working day. You can also reach us on
+            WhatsApp or Telegram, or walk into the office.
+          </p>
+        </div>
+        <EnquiryForm />
+      </div>
+
       <div className="contact__row">
         <div className="contact__col">
           <h4>Call the office</h4>
@@ -136,13 +151,13 @@ export default function Contact() {
         </div>
 
         <div className="contact__col">
-          {/* TODO: confirm real opening hours with the office and replace. */}
           <h4>Office hours</h4>
-          <p>Monday — Saturday</p>
-          <p>Walk in, or book ahead on WhatsApp</p>
-          <p style={{ color: 'var(--sage)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
-            Messages are answered outside office hours.
-          </p>
+          {BRAND.hours.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+          {BRAND.hoursNote && (
+            <p style={{ color: 'var(--sage)', fontSize: '0.85rem', marginTop: '0.5rem' }}>{BRAND.hoursNote}</p>
+          )}
         </div>
       </div>
     </section>

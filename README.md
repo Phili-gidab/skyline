@@ -283,12 +283,43 @@ JS-toggled class, which left the bar briefly unreadable mid-scroll.
 
 ## Editing content
 
-Nearly all copy lives in [src/data/site.js](src/data/site.js) — contact details, destinations with
-IATA codes, the service catalogue, process steps, stats, scholarship tables and open roles.
+The office edits the site at **`/admin`** — contact details, the hero lines, destinations (with
+photos), the service lines, extra services, process steps, the arrivals board, the spec readouts,
+the study offer, the legal notice and open roles. See **Admin and email** below.
+
+[src/data/site.js](src/data/site.js) holds the built-in defaults: what the site shows with no admin
+behind it (a static preview), and the starting content the admin is loaded with on install
+(`npm run seed:export` → `php-api/api/seed-data.json`). On each page load the saved content is
+fetched and written into those same exports *before* the page mounts (`applyContent`), so the
+animations only ever measure one settled version. A list that is empty or wholly hidden in the
+admin falls back to its default.
 
 The client's service catalogue is the source of truth for services, destinations, process and
 contact details. The PDF itself is served at `/skyline-service-catalogue.pdf` and linked from the
 catalogue section and the footer; replace that file when they issue a new edition.
+
+## Admin and email
+
+Built after the rtgeth project's CMS, which runs on cPanel shared hosting: a dependency-free PHP API
+([php-api/api](php-api/api)) and MySQL beside the static site, and a React admin at `/admin`
+([src/admin](src/admin)) loaded as its own chunk, so none of the site's 3D or scroll code comes with it.
+Deployment to Yegara and the email DNS setup: **[docs/deploy-yegara.md](docs/deploy-yegara.md)**.
+
+- **Content:** one schema list ([src/admin/schemas.js](src/admin/schemas.js)) drives the sidebar, the
+  forms and the API. Singletons are JSON documents (`content`); every list is rows in one `items`
+  table, so a new section needs no migration.
+- **Forms:** a visa enquiry (Contact), a study application (Study) and a job application with a CV
+  (Careers) post to `/api/submit`. Each is stored first, then the office is emailed (Reply-To the
+  sender, CV attached) and the sender gets a confirmation. Staff answer from *Form submissions*.
+  Honeypot plus a per-IP rate limit; no captcha.
+- **Mail:** Resend, then the office's cPanel mailbox over SMTP, then PHP `mail()`; every attempt is in
+  the *Email log*. The *Mailbox* receives through Resend's inbound webhook and replies in-thread.
+- **Staff:** administrators and editors (editors cannot manage the team). No password is ever emailed —
+  invitations and resets are one-time links. Disabling someone takes effect on their next request.
+- **Differences from rtgeth, on purpose:** the Resend webhook refuses unsigned posts; no SVG uploads
+  (an SVG can carry script, and the admin's session sits in the same origin); CVs and mail
+  attachments live outside the web root and are served only to signed-in staff.
+- **Tests:** `docker/` runs PHP 8.3 + Apache, MySQL and Mailpit locally (`npm run api:up`).
 
 ## Before this goes live
 
@@ -309,8 +340,8 @@ Still open:
 4. **Email spelling.** The flyers show both `managmentskyline@gmail.com` and
    `managementskyline@gmail.com`. The catalogue lists no email at all, so it now appears only on the
    Careers section, as the CV inbox.
-5. **Office hours** are a placeholder — see the `TODO` in
-   [src/components/Contact.jsx](src/components/Contact.jsx).
+5. **Office hours** are a placeholder — confirm them with the office, who can now set them in the
+   admin (Contact & brand).
 6. **The `500+` stat** is derived from the flyer's "hundreds of successful visas". Confirm or replace.
 7. **Destination photography** is hot-linked Unsplash imagery (Armenia is from Pexels, because none of
    the Unsplash candidates actually showed Armenia). Replace with owned or licensed photography

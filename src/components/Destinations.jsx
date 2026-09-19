@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { DESTINATIONS, countWord, whatsappLink, photoSrcSet } from '../data/site'
+import { DESTINATIONS, countWord, whatsappLink, photoSrcSet, photoSrc } from '../data/site'
 
 function Card({ d }) {
   const ask = whatsappLink(
@@ -13,7 +13,7 @@ function Card({ d }) {
       <div className="card__photo">
         {d.photo && (
           <img
-            src={`${d.photo}&w=960`}
+            src={photoSrc(d.photo)}
             srcSet={photoSrcSet(d.photo)}
             sizes="(max-width: 860px) 80vw, (max-width: 1466px) 30vw, 440px"
             alt=""

@@ -36,6 +36,17 @@ export const BRAND = {
     { display: '098 886 6060', tel: '+251988866060' },
   ],
   catalogueUrl: '/skyline-service-catalogue.pdf',
+  // TODO: confirm the real opening hours with the office (editable in the admin)
+  hours: ['Monday — Saturday', 'Walk in, or book ahead on WhatsApp'],
+  hoursNote: 'Messages are answered outside office hours.',
+}
+
+/* The hero's statement. The giant wordmark behind the aircraft is the logo;
+   this is the readable heading. */
+export const HERO = {
+  intro: 'Visa consultancy — Bole Road',
+  title: 'Work, study and visit visas.',
+  subtitle: 'You pay nothing until approval.',
 }
 
 /** A WhatsApp link that opens with a message already typed. */
@@ -250,7 +261,12 @@ const DESTINATION_LIST = [
  * mobile data much of this audience uses, the later cards sat blank.
  */
 export const photoSrcSet = (url, widths = [480, 720, 960, 1280]) =>
-  widths.map((w) => `${url}&w=${w} ${w}w`).join(', ')
+  isCdnPhoto(url) ? widths.map((w) => `${url}&w=${w} ${w}w`).join(', ') : undefined
+
+/* Unsplash and Pexels resize on the fly; a photo uploaded in the admin is
+   already web-sized by the server and is used as it is. */
+export const isCdnPhoto = (url) => /^https:\/\/images\.(unsplash|pexels)\.com\//.test(url || '')
+export const photoSrc = (url, w = 960) => (isCdnPhoto(url) ? `${url}&w=${w}` : url)
 
 export const DESTINATIONS = DESTINATION_LIST.map((d, i) => ({
   ...d,
@@ -356,7 +372,7 @@ export const WHY = [
 /* Verbatim from the catalogue. It is the legal counterweight to every
    timing and "no prepayment" line on the site, so it is shown in the
    catalogue section and again in the footer. */
-export const NOTICE =
+export let NOTICE =
   'Visa approval, admission, scholarships, work permits and immigration decisions are made solely by the relevant institutions and government authorities. Skyline Travel Solution provides professional guidance and application support but cannot guarantee approval or a specific outcome.'
 
 /* The catalogue's six-step service process. */
@@ -369,13 +385,24 @@ export const PROCESS = [
   { n: '06', title: 'Departure', body: 'Travel preparation and practical guidance before you fly.' },
 ]
 
-/* Rows of the arrivals board that closes the story. */
-export const STATS = [
+/* Rows of the arrivals board that closes the story. A value of "#destinations"
+   or "#services" is a live count, so it stays true when those lists change. */
+export const STATS_RAW = [
   { value: 500, suffix: '+', label: 'Visas issued', status: 'And counting' },
-  { value: DESTINATIONS.length, suffix: '', label: 'Live destinations', status: 'Open now' },
-  { value: CATALOGUE.length, suffix: '', label: 'Service lines', status: 'Study · work · visit' },
+  { value: '#destinations', suffix: '', label: 'Live destinations', status: 'Open now' },
+  { value: '#services', suffix: '', label: 'Service lines', status: 'Study · work · visit' },
   { value: 0, suffix: ' birr', label: 'Payable before approval', status: 'Pay on approval' },
 ]
+export const STATS = []
+
+/* The capabilities panel's readouts, with the same live-count tokens. */
+export const SPECS_RAW = [
+  { value: '45', unit: ' days', label: 'Turkey and Italy work visa' },
+  { value: '60', unit: ' days', label: 'Schengen visit visa' },
+  { value: '#destinations', unit: '', label: 'Destinations, three service lines' },
+  { value: '0', unit: ' birr', label: 'Payable before approval' },
+]
+export const SPECS = []
 
 export const SCHOLARSHIP = {
   school: 'Post University',
@@ -418,3 +445,137 @@ export const NAV = [
   { label: 'Careers', href: '#careers' },
   { label: 'Contact', href: '#contact' },
 ]
+
+/* ======================================================================
+   Content from the admin
+   ----------------------------------------------------------------------
+   Everything above is the built-in default. When the site loads, the
+   content saved in the admin (GET /api/content) is written into these same
+   exports before the page mounts, so every section — and every animation
+   measured against it — sees one settled version, never a swap mid-visit.
+   A list that is empty or wholly hidden in the admin keeps its default.
+   ====================================================================== */
+
+const COUNT_TOKENS = {
+  '#destinations': () => DESTINATIONS.length,
+  '#services': () => CATALOGUE.length,
+}
+const resolveCount = (v) => (typeof v === 'string' && COUNT_TOKENS[v] ? COUNT_TOKENS[v]() : v)
+
+function settleCounts() {
+  STATS.splice(0, STATS.length, ...STATS_RAW.map((s) => ({ ...s, value: resolveCount(s.value) })))
+  SPECS.splice(0, SPECS.length, ...SPECS_RAW.map((s) => ({ ...s, value: String(resolveCount(s.value)) })))
+}
+settleCounts()
+
+const str = (v) => (typeof v === 'string' ? v.trim() : typeof v === 'number' ? String(v) : '')
+const lines = (v) => (Array.isArray(v) ? v.map(str).filter(Boolean) : [])
+const pad = (n) => String(n).padStart(2, '0')
+const digits = (v) => str(v).replace(/\D/g, '')
+/* an Ethiopian local number (011 …, 09 …) as an international tel: link */
+const telOf = (display) => {
+  const d = digits(display)
+  if (str(display).startsWith('+')) return `+${d}`
+  return d.startsWith('0') ? `+251${d.slice(1)}` : `+${d}`
+}
+const replaceAll = (target, rows) => target.splice(0, target.length, ...rows)
+/* only a non-empty list replaces a default */
+const rowsOf = (c, key) => (Array.isArray(c?.[key]) && c[key].length ? c[key] : null)
+
+export function applyContent(remote) {
+  const s = remote?.singles || {}
+  const c = remote?.collections || {}
+
+  const b = s.brand
+  if (b) {
+    for (const k of ['tagline', 'mission', 'address', 'landmark', 'mapsQuery', 'whatsapp', 'telegram', 'instagram', 'email', 'hoursNote', 'catalogueUrl']) {
+      if (str(b[k])) BRAND[k] = str(b[k])
+    }
+    const phones = Array.isArray(b.phones) ? b.phones.filter((p) => str(p?.display)) : []
+    if (phones.length) BRAND.phones = phones.map((p) => ({ display: str(p.display), tel: str(p.tel) || telOf(p.display) }))
+    if (lines(b.hours).length) BRAND.hours = lines(b.hours)
+    BRAND.whatsappUrl = `https://wa.me/${digits(BRAND.whatsapp)}`
+    BRAND.telegramUrl = `https://t.me/${BRAND.telegram.replace(/^@/, '')}`
+    BRAND.instagramUrl = `https://instagram.com/${BRAND.instagram.replace(/^@/, '')}`
+  }
+
+  if (s.hero) for (const k of Object.keys(HERO)) if (str(s.hero[k])) HERO[k] = str(s.hero[k])
+
+  const sch = s.scholarship
+  if (sch) {
+    for (const k of ['school', 'location', 'founded', 'intake']) if (str(sch[k])) SCHOLARSHIP[k] = str(sch[k])
+    const tiers = Array.isArray(sch.tiers) ? sch.tiers.filter((t) => str(t?.gpa) && str(t?.award)) : []
+    if (tiers.length) SCHOLARSHIP.tiers = tiers.map((t) => ({ gpa: str(t.gpa), award: str(t.award) }))
+    const programs = Array.isArray(sch.programs) ? sch.programs.filter((p) => str(p?.level)) : []
+    if (programs.length) SCHOLARSHIP.programs = programs.map((p) => ({ level: str(p.level), fee: str(p.fee), after: str(p.after) }))
+  }
+
+  if (str(s.notice?.text)) NOTICE = str(s.notice.text)
+
+  const dest = rowsOf(c, 'destinations')?.filter((d) => str(d.country))
+  if (dest?.length) {
+    replaceAll(DESTINATIONS, dest.map((d, i) => {
+      const services = lines(d.services)
+      return {
+        id: str(d.slug) || `d${d.id}`,
+        country: str(d.country),
+        city: str(d.city),
+        iata: str(d.iata).toUpperCase(),
+        board: str(d.board).toUpperCase() || str(d.city).toUpperCase(),
+        services,
+        blurb: str(d.blurb),
+        points: lines(d.points),
+        photo: str(d.photo),
+        index: pad(i + 1),
+        kind: services.length ? kindOf(services) : 'Visas',
+      }
+    }))
+  }
+
+  const serviceLines = rowsOf(c, 'catalogue')?.filter((l) => str(l.title))
+  if (serviceLines?.length) {
+    replaceAll(CATALOGUE, serviceLines.map((l, i) => ({
+      id: str(l.slug) || `s${l.id}`,
+      n: pad(i + 1),
+      title: str(l.title),
+      ask: str(l.ask) || str(l.title).toLowerCase(),
+      lead: str(l.lead),
+      includes: lines(l.includes),
+      destinations: lines(l.destinations),
+      note: str(l.note),
+    })))
+  }
+
+  const extras = rowsOf(c, 'extras')?.map((e) => str(e.title)).filter(Boolean)
+  if (extras?.length) replaceAll(EXTRA_SERVICES, extras)
+
+  const why = rowsOf(c, 'why')?.filter((w) => str(w.title))
+  if (why?.length) replaceAll(WHY, why.map((w) => ({ title: str(w.title), body: str(w.body) })))
+
+  const steps = rowsOf(c, 'process')?.filter((p) => str(p.title))
+  if (steps?.length) replaceAll(PROCESS, steps.map((p, i) => ({ n: pad(i + 1), title: str(p.title), body: str(p.body) })))
+
+  const roles = rowsOf(c, 'roles')?.filter((r) => str(r.title))
+  if (roles?.length) replaceAll(ROLES, roles.map((r) => ({ title: str(r.title), type: str(r.type), body: str(r.body) })))
+
+  const stats = rowsOf(c, 'stats')?.filter((r) => str(r.label))
+  if (stats?.length) {
+    replaceAll(STATS_RAW, stats.map((r) => ({
+      value: /^\d+$/.test(str(r.value)) ? Number(str(r.value)) : str(r.value),
+      suffix: typeof r.suffix === 'string' ? r.suffix : '',
+      label: str(r.label),
+      status: str(r.status),
+    })))
+  }
+
+  const specs = rowsOf(c, 'specs')?.filter((r) => str(r.label))
+  if (specs?.length) {
+    replaceAll(SPECS_RAW, specs.map((r) => ({
+      value: str(r.value),
+      unit: typeof r.unit === 'string' ? r.unit : '',
+      label: str(r.label),
+    })))
+  }
+
+  settleCounts()
+}

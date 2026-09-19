@@ -4,7 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import SplitFlap from './SplitFlap.jsx'
 import Arrivals from './Arrivals.jsx'
 import { stage, BEATS } from '../stage3d/choreography.js'
-import { BRAND, DESTINATIONS, PROCESS, countWord } from '../data/site'
+import { BRAND, DESTINATIONS, PROCESS, HERO, SPECS, countWord } from '../data/site'
 
 const BOARD_INTERVAL = 4200
 
@@ -193,7 +193,7 @@ export default function Story({ ready }) {
         <div className="panel__inner">
           <div className="hero__top">
             <p className="hero__intro" style={{ opacity: 0 }}>
-              Visa consultancy — Bole Road
+              {HERO.intro}
             </p>
             <div className="hero__clock" style={{ opacity: 0 }}>
               <span>
@@ -210,12 +210,12 @@ export default function Story({ ready }) {
           <h1 className="hero__title">
             <span className="mask">
               <span className="word">
-                <span>Work, study and visit visas.</span>
+                <span>{HERO.title}</span>
               </span>
             </span>
             <span className="mask">
               <span className="word">
-                <span className="hero__title-sub">You pay nothing until approval.</span>
+                <span className="hero__title-sub">{HERO.subtitle}</span>
               </span>
             </span>
           </h1>
@@ -262,10 +262,9 @@ export default function Story({ ready }) {
           </p>
 
           <div className="specs">
-            <Spec value="45" unit=" days" label="Turkey and Italy work visa" />
-            <Spec value="60" unit=" days" label="Schengen visit visa" />
-            <Spec value={String(DESTINATIONS.length)} label="Destinations, three service lines" />
-            <Spec value="0" unit=" birr" label="Payable before approval" />
+            {SPECS.map((s) => (
+              <Spec key={s.label} value={s.value} unit={s.unit} label={s.label} />
+            ))}
           </div>
         </div>
       </section>

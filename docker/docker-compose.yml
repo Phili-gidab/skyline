@@ -1,0 +1,57 @@
+# Local development and testing for the Skyline API.
+#
+#   docker compose -f docker/docker-compose.yml up -d --build
+#   then open http://localhost:8080 (the built site + API, like production),
+#   run `npm run dev` for the live-reloading front end (proxies /api here),
+#   and read every email the API sends at http://localhost:8025 (Mailpit).
+#
+# Nothing here is used in production — see docs/deploy-yegara.md.
+name: skyline-dev
+
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: skyline
+      MYSQL_USER: skyline
+      MYSQL_PASSWORD: skyline-dev
+      MYSQL_ROOT_PASSWORD: skyline-root
+    ports:
+      - "3307:3306"
+    volumes:
+      - db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pskyline-root"]
+      interval: 5s
+      retries: 30
+
+  mail:
+    image: axllent/mailpit
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+    ports:
+      - "8025:8025"
+
+  php:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+      mail:
+        condition: service_started
+    ports:
+      - "8080:80"
+    volumes:
+      # the built site is the web root, exactly as public_html will be
+      - ../dist:/var/www/html
+      - ../php-api/api:/var/www/html/api:ro
+      - ../php-api:/var/www/php-api:ro
+      - ./config.dev.php:/var/www/skyline-api-config.php:ro
+      - uploads:/var/www/html/uploads
+      - private:/var/www/private
+
+volumes:
+  db:
+  uploads:
+  private:

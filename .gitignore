@@ -5,3 +5,7 @@ dist
 
 # 68MB source asset — run `npm run model:optimize` to regenerate public/models/aircraft.glb
 model-source/
+
+# API configuration holds real secrets — it lives outside the repo (and the web root)
+skyline-api-config.php
+php-api/config.php

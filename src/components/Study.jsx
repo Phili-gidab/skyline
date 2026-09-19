@@ -3,6 +3,8 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { SCHOLARSHIP, BRAND, whatsappLink } from '../data/site'
 import { NAV_TONE } from '../lib/events'
+import { scrollTo } from '../lib/smooth'
+import StudyForm from './forms/StudyForm'
 
 /** The fly-over's art, rendered offline (see README) and served from public/. */
 const SKY = '/flyover/'
@@ -28,11 +30,14 @@ const FLIGHT = {
 const len = ([a, b]) => b - a
 const toNumber = (s) => Number(String(s).replace(/[^0-9.]/g, ''))
 
-const [INTAKE_STATE, INTAKE_TERM] = SCHOLARSHIP.intake.split(' — ')
-const FOUNDED = SCHOLARSHIP.founded.replace(/\D/g, '')
-
-const FACTS = [
-  { value: SCHOLARSHIP.tiers[0].award, label: 'Top merit award' },
+/* read at render, not at import: the admin's content is applied before mount */
+const intakeParts = () => {
+  const [state, term] = SCHOLARSHIP.intake.split(' — ')
+  return term ? [state, term] : ['Open intake', state]
+}
+const founded = () => SCHOLARSHIP.founded.replace(/\D/g, '')
+const facts = () => [
+  { value: SCHOLARSHIP.tiers[0]?.award || '', label: 'Top merit award' },
   { value: '$0', label: 'Application fee' },
   { value: '$0', label: 'I-20 fee' },
   { value: 'F-1', label: 'Interview coaching' },
@@ -53,6 +58,7 @@ function toneSetter() {
 
 /** The school's name runs round a slowly turning ring; the intake sits in the middle. */
 function Seal() {
+  const [INTAKE_STATE, INTAKE_TERM] = intakeParts()
   const ring = `${SCHOLARSHIP.school} · ${SCHOLARSHIP.location} · ${SCHOLARSHIP.founded} · `
   return (
     <div className="seal" aria-hidden="true">
@@ -355,12 +361,12 @@ export default function Study() {
 
       <div className="study__intro">
         <p className="study__lede">
-          {SCHOLARSHIP.school} in {SCHOLARSHIP.location}, founded {FOUNDED}. We prepare the admission
+          {SCHOLARSHIP.school} in {SCHOLARSHIP.location}, founded {founded()}. We prepare the admission
           file, negotiate the award and coach you through the F-1 interview — with no application
           fee, no I-20 fee and the SEVIS fee credit applied.
         </p>
         <ul className="facts">
-          {FACTS.map((f) => (
+          {facts().map((f) => (
             <li key={f.label}>
               <span className="facts__value">{f.value}</span>
               <span className="facts__label">{f.label}</span>
@@ -397,13 +403,35 @@ export default function Study() {
         <MeritChart />
       </div>
 
+      <div className="study__apply" id="study-apply">
+        <div className="study__apply-intro">
+          <span className="eyebrow">Apply online</span>
+          <h3 className="study__apply-title">
+            Start your <em>application</em>
+          </h3>
+          <p className="study__lede">
+            Tell us about yourself and a study-abroad consultant takes it from there: eligibility, the admission file, the
+            scholarship and the F-1 interview.
+          </p>
+        </div>
+        <StudyForm />
+      </div>
+
       <div className="study__foot">
         <p>
-          {INTAKE_STATE} for {INTAKE_TERM}. Nothing is payable until your visa is approved.
+          {intakeParts().join(' for ')}. Nothing is payable until your visa is approved.
         </p>
         <div className="study__ctas">
-          <a className="btn btn--solid" href={BRAND.telegramUrl} target="_blank" rel="noreferrer" data-cursor="Apply">
-            Start an application ↗
+          <a
+            className="btn btn--solid"
+            href="#study-apply"
+            onClick={(e) => {
+              e.preventDefault()
+              scrollTo('#study-apply')
+            }}
+            data-cursor="Apply"
+          >
+            Apply online ↑
           </a>
           <a
             className="btn btn--ghost"
