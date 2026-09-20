@@ -21,7 +21,11 @@ function AuthShell({ title, children }) {
     <div className="adm-auth">
       <aside className="adm-auth-brand">
         <img src="/logo-lockup.svg" alt="Skyline Travel Solution" />
-        <p>Website admin</p>
+        <div>
+          <h2>The website, from the inside</h2>
+          <p>Content, enquiries, applications and the office mailbox for skyline-et.com.</p>
+        </div>
+        <span className="adm-auth-foot">Website admin</span>
       </aside>
       <main className="adm-auth-main">
         <div className="adm-auth-card">
@@ -233,14 +237,14 @@ function Layout() {
   return (
     <div className="adm">
       <header className="adm-top">
-        <img src="/logo-compact.svg" alt="Skyline" />
+        <img src="/logo-compact-dark.svg" alt="Skyline" />
         <button className="adm-menu-btn" onClick={() => setMenu((v) => !v)} aria-expanded={menu}>
           {menu ? 'Close' : 'Menu'}
         </button>
       </header>
       <aside className={`adm-side${menu ? ' open' : ''}`}>
         <div className="adm-brand">
-          <img src="/logo-compact.svg" alt="Skyline" />
+          <img src="/logo-compact-dark.svg" alt="Skyline" />
           <small>Website admin</small>
         </div>
         <nav>

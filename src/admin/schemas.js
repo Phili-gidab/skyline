@@ -12,7 +12,7 @@ export const SINGLETONS = [
     icon: '☎',
     intro: 'The office details used across the whole site — the contact section, the footer, the WhatsApp and Telegram links, and every email the site sends.',
     fields: [
-      { name: 'tagline', label: 'Tagline', type: 'text', help: 'Shown under the hero and in the logo lockup.' },
+      { name: 'tagline', label: 'Tagline', type: 'text', help: 'Shown large in the footer, and beside the logo.' },
       { name: 'mission', label: 'Mission statement', type: 'textarea' },
       { name: 'address', label: 'Address', type: 'text' },
       { name: 'landmark', label: 'Landmark', type: 'text', help: 'e.g. “In front of Awaris Hotel”.' },
@@ -39,7 +39,7 @@ export const SINGLETONS = [
     key: 'hero',
     label: 'Hero',
     icon: '✈',
-    intro: 'The statement on the first screen, under the aircraft.',
+    intro: 'The statement on the first screen. The first line is set at plate size, the second sits under it.',
     fields: [
       { name: 'intro', label: 'Top line', type: 'text' },
       { name: 'title', label: 'Headline', type: 'text' },
@@ -82,7 +82,7 @@ export const SINGLETONS = [
     key: 'notice',
     label: 'Legal notice',
     icon: '§',
-    intro: 'The disclaimer shown in the catalogue section and the footer.',
+    intro: 'The disclaimer shown at the foot of the service catalogue and again in the footer.',
     fields: [{ name: 'text', label: 'Notice', type: 'textarea' }],
   },
 ]
@@ -96,12 +96,12 @@ export const COLLECTIONS = [
     icon: '◎',
     titleField: 'country',
     subtitle: (d) => [d.city, (d.services || []).join(' · ')].filter(Boolean).join(' — '),
-    intro: 'The postcards, the route list and the departures board. Hide a destination to take it off the site without losing it.',
+    intro: 'The atlas index and the panel each row opens. Hide a destination to take it off the site without losing it.',
     fields: [
       { name: 'country', label: 'Country (as shown)', type: 'text', required: true, help: 'e.g. “Italy / Schengen”.' },
       { name: 'city', label: 'City in the photo', type: 'text', help: 'The caption — keep it true to the picture.' },
-      { name: 'iata', label: 'Airport code', type: 'text', help: 'Three letters, e.g. FCO. Shown as ADD → FCO.' },
-      { name: 'board', label: 'Departures board name', type: 'text', help: 'Up to 9 letters, e.g. ROMA.' },
+      { name: 'iata', label: 'Airport code', type: 'text', help: 'Three letters, e.g. FCO. Shown in the index as ADD → FCO.' },
+      { name: 'board', label: 'City, in the index', type: 'text', help: 'Short form, e.g. ROMA.' },
       { name: 'services', label: 'Services', type: 'checks', options: SERVICES },
       { name: 'blurb', label: 'Short description', type: 'textarea' },
       { name: 'points', label: 'What is included', type: 'list' },
@@ -113,7 +113,7 @@ export const COLLECTIONS = [
     label: 'Service lines',
     icon: '▦',
     titleField: 'title',
-    intro: 'The three lines of the service catalogue, as accordion rows.',
+    intro: 'The three lines of the service catalogue. Each one is a numbered entry with its own list of what is included.',
     fields: [
       { name: 'title', label: 'Title', type: 'text', required: true },
       { name: 'ask', label: 'WhatsApp wording', type: 'text', help: '“Ask about … on WhatsApp”, e.g. “student visas”.' },
@@ -153,10 +153,10 @@ export const COLLECTIONS = [
   },
   {
     key: 'stats',
-    label: 'Arrivals board',
+    label: 'Record figures',
     icon: '▤',
     titleField: 'label',
-    intro: 'The rows of the split-flap board that closes the story. Keep values short — six characters with the suffix.',
+    intro: 'The four figures on the dark plate in the middle of the site. Keep values short.',
     fields: [
       { name: 'label', label: 'Label', type: 'text', required: true },
       { name: 'value', label: 'Value', type: 'text', help: 'A number, or #destinations / #services for a count that updates itself.' },
@@ -165,23 +165,11 @@ export const COLLECTIONS = [
     ],
   },
   {
-    key: 'specs',
-    label: 'Spec readouts',
-    icon: '◧',
-    titleField: 'label',
-    intro: 'The four figures on the “Files that actually fly” panel.',
-    fields: [
-      { name: 'label', label: 'Label', type: 'text', required: true },
-      { name: 'value', label: 'Value', type: 'text', help: 'A number, or #destinations for the live count.' },
-      { name: 'unit', label: 'Unit', type: 'text', help: 'e.g. “ days” (with the space).' },
-    ],
-  },
-  {
     key: 'roles',
     label: 'Open roles',
     icon: '✦',
     titleField: 'title',
-    intro: 'The boarding passes in the careers section. Applications arrive under Form submissions, with the CV.',
+    intro: 'The open roles in the careers section. Applications arrive under Form submissions, with the CV.',
     fields: [
       { name: 'title', label: 'Role', type: 'text', required: true },
       { name: 'type', label: 'Terms', type: 'text', help: 'e.g. “On-site / Full time”.' },

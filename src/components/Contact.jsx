@@ -1,163 +1,89 @@
-import React, { useEffect, useRef } from 'react'
-import gsap from 'gsap'
+import React from 'react'
 import { BRAND } from '../data/site'
-import { useMagnetic } from '../lib/useMagnetic'
 import EnquiryForm from './forms/EnquiryForm'
 
-/* Contact details follow the client's own "Contact us" block and service
-   catalogue exactly — address, three landlines, WhatsApp and Telegram. */
-
+/* The last plate: where the office is, how to reach it, and the form that
+ * opens a file without anyone having to walk in first.
+ */
 export default function Contact() {
-  const root = useRef(null)
-  const { ref: magRef, innerRef } = useMagnetic({ strength: 0.35, innerStrength: 0.18 })
-
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        '.contact__big .word > span',
-        { yPercent: 115 },
-        {
-          yPercent: 0,
-          duration: 1.3,
-          ease: 'expo.out',
-          stagger: 0.08,
-          scrollTrigger: { trigger: '.contact__big', start: 'top 85%' },
-        }
-      )
-
-      gsap.fromTo(
-        '.contact__col',
-        { y: 34, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.9,
-          ease: 'power3.out',
-          stagger: 0.08,
-          scrollTrigger: { trigger: '.contact__row', start: 'top 88%' },
-        }
-      )
-    }, root)
-
-    return () => ctx.revert()
-  }, [])
-
-  const maps = `https://www.google.com/maps/search/${encodeURIComponent(BRAND.mapsQuery)}`
+  const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(BRAND.mapsQuery)}`
 
   return (
-    <section className="contact" id="contact" ref={root}>
-      <span className="eyebrow" style={{ marginBottom: '2rem' }}>
-        Contact us
-      </span>
-
-      <h2 className="contact__big">
-        <span className="word" style={{ display: 'inline-block', overflow: 'hidden' }}>
-          <span style={{ display: 'inline-block' }}>You belong</span>
-        </span>
-        <br />
-        <span className="word" style={{ display: 'inline-block', overflow: 'hidden' }}>
-          <span style={{ display: 'inline-block' }}>
-            <em>everywhere</em>
-          </span>
-        </span>
-      </h2>
-
-      <div className="contact__cta-row">
+    <section className="section contact" id="contact">
+      <div className="section__head">
         <div>
-          <p className="contact__cta-copy">
-            Walk into the office on Bole Road, in front of the Awaris Hotel, or send a message on
-            WhatsApp or Telegram and we will open a file today. Nothing is payable until your visa is
-            approved.
-          </p>
-          <p className="contact__cta-copy am" style={{ marginTop: '1rem', color: 'var(--gold)' }}>
-            ክፍያ ከቪዛ በኋላ የሚከፈል
-          </p>
-          <a
-            className="contact__alt"
-            href={BRAND.whatsappUrl}
-            target="_blank"
-            rel="noreferrer"
-            data-cursor="WhatsApp"
-          >
-            WhatsApp {BRAND.whatsapp} ↗
-          </a>
+          <span className="section__no">07 — Contact</span>
+          <h2 className="section__title">
+            Tell us where
+            <br />
+            you are going
+          </h2>
         </div>
-
-        <a
-          className="magnet"
-          ref={magRef}
-          href={BRAND.telegramUrl}
-          target="_blank"
-          rel="noreferrer"
-          data-cursor="Telegram"
-        >
-          <span className="magnet__inner" ref={innerRef}>
-            <span>Apply</span>
-            <span>Now ↗</span>
-          </span>
-        </a>
+        <p className="section__aside">
+          Leave your number and a consultant will call you back, usually the same working day. You
+          can also message us or walk into the office.
+        </p>
       </div>
 
-      <div className="contact__form" id="enquiry">
-        <div className="contact__form-intro">
-          <span className="eyebrow">Open a file online</span>
-          <h3 className="contact__form-title">
-            Tell us where <em>you are going</em>
-          </h3>
-          <p className="contact__cta-copy">
-            Leave your number and a consultant will call you back, usually the same working day. You can also reach us on
-            WhatsApp or Telegram, or walk into the office.
-          </p>
-        </div>
-        <EnquiryForm />
-      </div>
-
-      <div className="contact__row">
-        <div className="contact__col">
-          <h4>Call the office</h4>
-          {BRAND.phones.map((p) => (
-            <a key={p.tel} href={`tel:${p.tel}`}>
-              {p.display}
+      <div className="contact__grid">
+        <div className="contact__details">
+          <div className="detail">
+            <span className="label">Office</span>
+            <a href={maps} target="_blank" rel="noreferrer">
+              {BRAND.address}
+              <br />
+              {BRAND.landmark}, {BRAND.city}
             </a>
-          ))}
+          </div>
+
+          <div className="detail">
+            <span className="label">Telephone</span>
+            <ul>
+              {BRAND.phones.map((p) => (
+                <li key={p.tel}>
+                  <a href={`tel:${p.tel}`}>{p.display}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="detail">
+            <span className="label">Message</span>
+            <ul>
+              <li>
+                <a href={BRAND.whatsappUrl} target="_blank" rel="noreferrer">
+                  WhatsApp {BRAND.whatsapp}
+                </a>
+              </li>
+              <li>
+                <a href={BRAND.telegramUrl} target="_blank" rel="noreferrer">
+                  Telegram @{BRAND.telegram}
+                </a>
+              </li>
+              <li>
+                <a href={BRAND.instagramUrl} target="_blank" rel="noreferrer">
+                  Instagram @{BRAND.instagram}
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div className="detail">
+            <span className="label">Hours</span>
+            <ul>
+              {BRAND.hours.map((h) => (
+                <li key={h}>{h}</li>
+              ))}
+            </ul>
+            <p className="detail__note">{BRAND.hoursNote}</p>
+          </div>
+
+          <p className="contact__amharic">ክፍያ ከቪዛ በኋላ የሚከፈል</p>
         </div>
 
-        <div className="contact__col">
-          <h4>Message</h4>
-          <a href={BRAND.whatsappUrl} target="_blank" rel="noreferrer" data-cursor="WhatsApp">
-            WhatsApp {BRAND.whatsapp}
-          </a>
-          <a href={BRAND.telegramUrl} target="_blank" rel="noreferrer" data-cursor="Telegram">
-            Telegram @{BRAND.telegram}
-          </a>
-        </div>
-
-        <div className="contact__col">
-          <h4>Visit</h4>
-          <p>{BRAND.address}</p>
-          <p>{BRAND.landmark}</p>
-          <p>
-            {BRAND.city}, {BRAND.country}
-          </p>
-          <a
-            href={maps}
-            target="_blank"
-            rel="noreferrer"
-            data-cursor="Map"
-            style={{ marginTop: '0.5rem', color: 'var(--gold)' }}
-          >
-            Open in maps ↗
-          </a>
-        </div>
-
-        <div className="contact__col">
-          <h4>Office hours</h4>
-          {BRAND.hours.map((line) => (
-            <p key={line}>{line}</p>
-          ))}
-          {BRAND.hoursNote && (
-            <p style={{ color: 'var(--sage)', fontSize: '0.85rem', marginTop: '0.5rem' }}>{BRAND.hoursNote}</p>
-          )}
+        <div className="contact__form" id="enquiry">
+          <h3 className="label">Open a file online</h3>
+          <EnquiryForm />
         </div>
       </div>
     </section>

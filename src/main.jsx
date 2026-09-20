@@ -1,12 +1,12 @@
 import React, { Suspense, lazy } from 'react'
 import ReactDOM from 'react-dom/client'
-import './styles/global.css'
+import './styles/atlas.css'
 import { loadContent } from './lib/content'
 
 const root = ReactDOM.createRoot(document.getElementById('root'))
 
 if (window.location.pathname.startsWith('/admin')) {
-  // the admin is its own app and chunk: none of the site's 3D or scroll code loads
+  // the admin is its own app and chunk: none of the site's scroll code loads
   const AdminRoot = lazy(() => import('./admin/AdminRoot.jsx'))
   root.render(
     <Suspense fallback={null}>
