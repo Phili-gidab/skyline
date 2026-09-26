@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(190) NOT NULL UNIQUE,
   name VARCHAR(120) NULL,
   password_hash VARCHAR(100) NOT NULL,
-  role ENUM('admin','editor') NOT NULL DEFAULT 'editor',
+  role VARCHAR(20) NOT NULL DEFAULT 'editor',
   is_disabled TINYINT(1) NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_login_at TIMESTAMP NULL
@@ -96,4 +96,89 @@ CREATE TABLE IF NOT EXISTS inbox_messages (
   UNIQUE KEY uniq_message (message_id),
   INDEX idx_box (direction, status, created_at),
   INDEX idx_thread (thread_key, created_at)
+);
+
+-- ------------------------------------------------------------------
+-- The five roles outgrew the original ENUM; widen it on existing installs.
+ALTER TABLE users MODIFY role VARCHAR(20) NOT NULL DEFAULT 'editor';
+
+-- ------------------------------------------------------------------
+-- Work boards: the office's client tracking, in place of the spreadsheets.
+-- A board has typed columns, groups (intakes, stages) and items (clients).
+CREATE TABLE IF NOT EXISTS boards (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(120) NOT NULL,
+  description VARCHAR(500) NULL,
+  settings JSON NULL,
+  sort INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS board_columns (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  board_id INT NOT NULL,
+  k VARCHAR(40) NOT NULL,
+  name VARCHAR(80) NOT NULL,
+  type VARCHAR(20) NOT NULL,
+  settings JSON NULL,
+  sort INT NOT NULL DEFAULT 0,
+  width INT NULL,
+  UNIQUE KEY uq_board_col (board_id, k),
+  INDEX idx_board (board_id, sort)
+);
+
+CREATE TABLE IF NOT EXISTS board_groups (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  board_id INT NOT NULL,
+  name VARCHAR(120) NOT NULL,
+  color VARCHAR(20) NULL,
+  sort INT NOT NULL DEFAULT 0,
+  INDEX idx_board (board_id, sort)
+);
+
+CREATE TABLE IF NOT EXISTS board_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  board_id INT NOT NULL,
+  group_id INT NULL,
+  name VARCHAR(190) NOT NULL,
+  vals JSON NULL,
+  assignee_id INT NULL,
+  submission_id INT NULL,
+  sort INT NOT NULL DEFAULT 0,
+  archived TINYINT(1) NOT NULL DEFAULT 0,
+  created_by INT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_board (board_id, archived, group_id, sort),
+  INDEX idx_assignee (assignee_id)
+);
+
+-- clients' portal passwords, sealed (AES-256-GCM) — never stored in vals
+CREATE TABLE IF NOT EXISTS item_secrets (
+  item_id INT NOT NULL,
+  k VARCHAR(40) NOT NULL,
+  sealed TEXT NOT NULL,
+  updated_by INT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (item_id, k)
+);
+
+CREATE TABLE IF NOT EXISTS item_updates (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  item_id INT NOT NULL,
+  user_id INT NULL,
+  body TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_item (item_id, created_at)
+);
+
+-- every change, and every time a password is revealed
+CREATE TABLE IF NOT EXISTS item_activity (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  item_id INT NOT NULL,
+  user_id INT NULL,
+  action VARCHAR(40) NOT NULL,
+  detail JSON NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_item (item_id, created_at)
 );

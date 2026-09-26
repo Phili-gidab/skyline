@@ -149,6 +149,31 @@ Built after the rtgeth project's CMS, which runs on cPanel shared hosting: a dep
 - **Locally:** `docker/` runs PHP 8.3 + Apache, MySQL and Mailpit (`npm run api:up`, then
   `npm run api:setup`). Mail lands at localhost:8025.
 
+## Client boards and roles
+
+The admin replaces the office's tracking spreadsheets with **boards**
+([php-api/api/boards.php](php-api/api/boards.php), [src/admin/pages/Board.jsx](src/admin/pages/Board.jsx)):
+typed columns (status, person, date, money, dropdown, checkbox, password…), groups such as intakes, a
+table and a kanban view, updates on each client and a complete activity trail. A website submission
+becomes a client with one click, documents included.
+
+Five roles, enforced on the server (`CAPS` in [lib.php](php-api/api/lib.php)), never just hidden in the
+menu:
+
+| | Admin | Manager | Agent | Front desk | Editor |
+| --- | --- | --- | --- | --- | --- |
+| Clients on the boards | all | all | only their own | all | — |
+| Money columns | ✓ | ✓ | — | — | — |
+| Clients' portal passwords | ✓ | — | own clients | — | — |
+| Submissions and mailbox | ✓ | ✓ | — | ✓ | — |
+| Website content | ✓ | ✓ | — | — | ✓ |
+| Team and board setup | ✓ | — | — | — | — |
+
+An agent asking for someone else's client gets *not found*, not *forbidden*: they cannot learn who else
+is on the books. Clients' portal passwords are sealed with AES-256-GCM (`seal()` / `unseal()`), the key
+is `SECRETS_KEY` in the server config and nowhere else, and every reveal is written to the item's
+activity with who and when.
+
 ## Deploying
 
 The site is built here and uploaded; nothing is compiled on the server.

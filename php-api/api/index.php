@@ -553,7 +553,7 @@ if ($method === 'POST' && $path === '/resend/webhook') {
 
 if ($method === 'GET' && $path === '/auth/me') {
   $u = require_staff();
-  send(200, ['email' => $u['email'], 'name' => $u['name'], 'role' => $u['role']]);
+  send(200, ['id' => $u['id'], 'email' => $u['email'], 'name' => $u['name'], 'role' => $u['role'], 'caps' => caps_of($u)]);
 }
 
 if ($method === 'POST' && $path === '/auth/password') {
@@ -573,32 +573,49 @@ if ($method === 'POST' && $path === '/auth/password') {
 }
 
 if ($method === 'GET' && $path === '/admin/overview') {
-  require_staff();
-  $forms = [];
-  foreach (db()->query('SELECT kind, COUNT(*) AS total, SUM(is_read = 0) AS unread FROM submissions GROUP BY kind') as $r) {
-    $forms[$r['kind']] = ['total' => (int)$r['total'], 'unread' => (int)$r['unread']];
+  $u = require_staff();
+  $out = ['role' => $u['role'], 'caps' => caps_of($u)];
+
+  // each block only for the people allowed to see what is in it
+  if (can($u, 'messages')) {
+    $forms = [];
+    foreach (db()->query('SELECT kind, COUNT(*) AS total, SUM(is_read = 0) AS unread FROM submissions GROUP BY kind') as $r) {
+      $forms[$r['kind']] = ['total' => (int)$r['total'], 'unread' => (int)$r['unread']];
+    }
+    $recent = [];
+    foreach (db()->query('SELECT id, kind, name, created_at, is_read FROM submissions ORDER BY created_at DESC LIMIT 6') as $r) {
+      $r['id'] = (int)$r['id'];
+      $r['is_read'] = (bool)$r['is_read'];
+      $r['created_at'] = iso($r['created_at']);
+      $recent[] = $r;
+    }
+    $out += [
+      'forms' => (object)$forms,
+      'recent' => $recent,
+      'inbox_unread' => (int)db()->query("SELECT COUNT(*) FROM inbox_messages WHERE direction = 'in' AND status = 'unread'")->fetchColumn(),
+      'mail_failed_7d' => (int)db()->query("SELECT COUNT(*) FROM email_log WHERE status IN ('failed','bounced','complained') AND created_at > NOW() - INTERVAL 7 DAY")->fetchColumn(),
+      'mail_ready' => ['resend' => (cfg()['RESEND_API_KEY'] ?? '') !== '', 'inbound' => (cfg()['RESEND_WEBHOOK_SECRET'] ?? '') !== ''],
+    ];
   }
-  $recent = [];
-  foreach (db()->query('SELECT id, kind, name, created_at, is_read FROM submissions ORDER BY created_at DESC LIMIT 6') as $r) {
-    $r['id'] = (int)$r['id'];
-    $r['is_read'] = (bool)$r['is_read'];
-    $r['created_at'] = iso($r['created_at']);
-    $recent[] = $r;
+  if (can($u, 'content')) {
+    $out['content_updated'] = iso(db()->query('SELECT GREATEST(COALESCE((SELECT MAX(updated_at) FROM content), 0), COALESCE((SELECT MAX(updated_at) FROM items), 0))')->fetchColumn() ?: null);
   }
-  send(200, [
-    'forms' => (object)$forms,
-    'recent' => $recent,
-    'inbox_unread' => (int)db()->query("SELECT COUNT(*) FROM inbox_messages WHERE direction = 'in' AND status = 'unread'")->fetchColumn(),
-    'mail_failed_7d' => (int)db()->query("SELECT COUNT(*) FROM email_log WHERE status IN ('failed','bounced','complained') AND created_at > NOW() - INTERVAL 7 DAY")->fetchColumn(),
-    'content_updated' => iso(db()->query('SELECT GREATEST(COALESCE((SELECT MAX(updated_at) FROM content), 0), COALESCE((SELECT MAX(updated_at) FROM items), 0))')->fetchColumn() ?: null),
-    'mail_ready' => ['resend' => (cfg()['RESEND_API_KEY'] ?? '') !== '', 'smtp' => (cfg()['SMTP_HOST'] ?? '') !== '', 'inbound' => (cfg()['RESEND_WEBHOOK_SECRET'] ?? '') !== ''],
-  ]);
+  if (can($u, 'boards')) {
+    // the boards summary counts only the clients this person can see
+    $mine = can($u, 'boards_all') ? '' : ' AND i.assignee_id = ' . (int)$u['id'];
+    $boards = [];
+    foreach (db()->query("SELECT b.id, b.name, COUNT(i.id) AS n FROM boards b LEFT JOIN board_items i ON i.board_id = b.id AND i.archived = 0$mine GROUP BY b.id, b.name ORDER BY b.sort, b.id") as $r) {
+      $boards[] = ['id' => (int)$r['id'], 'name' => $r['name'], 'items' => (int)$r['n']];
+    }
+    $out['boards'] = $boards;
+  }
+  send(200, $out);
 }
 
 /* ---------- content: singletons ---------- */
 
 if (preg_match('#^/admin/content/([^/]+)$#', $path, $m)) {
-  $u = require_staff();
+  $u = require_cap('content');
   $key = $m[1];
   if (!valid_key($key)) fail(400, 'Bad key');
   if ($method === 'GET') {
@@ -624,7 +641,7 @@ if (preg_match('#^/admin/content/([^/]+)$#', $path, $m)) {
 /* ---------- content: collections ---------- */
 
 if (preg_match('#^/admin/items/([^/]+)/reorder$#', $path, $m) && $method === 'POST') {
-  require_staff();
+  require_cap('content');
   $collection = $m[1];
   if (!valid_key($collection)) fail(400, 'Bad collection');
   $order = body_json()['order'] ?? null;
@@ -643,7 +660,7 @@ if (preg_match('#^/admin/items/([^/]+)/reorder$#', $path, $m) && $method === 'PO
 }
 
 if (preg_match('#^/admin/items/([^/]+)/(\d+)$#', $path, $m)) {
-  require_staff();
+  require_cap('content');
   [, $collection, $id] = $m;
   if (!valid_key($collection)) fail(400, 'Bad collection');
   if ($method === 'PUT') {
@@ -671,7 +688,7 @@ if (preg_match('#^/admin/items/([^/]+)/(\d+)$#', $path, $m)) {
 }
 
 if (preg_match('#^/admin/items/([^/]+)$#', $path, $m)) {
-  require_staff();
+  require_cap('content');
   $collection = $m[1];
   if (!valid_key($collection)) fail(400, 'Bad collection');
   if ($method === 'GET') {
@@ -707,7 +724,7 @@ if (preg_match('#^/admin/items/([^/]+)$#', $path, $m)) {
    read the admin's session. Photos and PDFs only. */
 
 if ($method === 'POST' && $path === '/admin/upload') {
-  require_staff();
+  require_cap('content');
   $allowed = ['image/jpeg' => '.jpg', 'image/png' => '.png', 'image/webp' => '.webp', 'application/pdf' => '.pdf'];
   $f = $_FILES['file'] ?? null;
   if (!$f || $f['error'] === UPLOAD_ERR_NO_FILE) fail(400, 'No file received');
@@ -724,7 +741,7 @@ if ($method === 'POST' && $path === '/admin/upload') {
 }
 
 if ($method === 'GET' && $path === '/admin/uploads') {
-  require_staff();
+  require_cap('content');
   $dir = cfg()['UPLOAD_DIR'];
   $out = [];
   foreach (is_dir($dir) ? scandir($dir) : [] as $name) {
@@ -737,7 +754,7 @@ if ($method === 'GET' && $path === '/admin/uploads') {
 }
 
 if ($method === 'DELETE' && preg_match('#^/admin/upload/([^/]+)$#', $path, $m)) {
-  require_staff();
+  require_cap('content');
   $name = basename(rawurldecode($m[1])); // no traversal
   if ($name === '' || $name[0] === '.') fail(400, 'Bad name');
   $target = cfg()['UPLOAD_DIR'] . '/' . $name;
@@ -749,7 +766,7 @@ if ($method === 'DELETE' && preg_match('#^/admin/upload/([^/]+)$#', $path, $m)) 
 /* ---------- form submissions ---------- */
 
 if ($method === 'GET' && $path === '/admin/submissions') {
-  require_staff();
+  require_cap('messages');
   $kind = isset(FORMS[$_GET['kind'] ?? '']) ? $_GET['kind'] : null;
   $st = db()->prepare('SELECT id, kind, name, email, phone, message, extra, is_read, created_at FROM submissions '
     . ($kind ? 'WHERE kind = ? ' : '') . 'ORDER BY created_at DESC LIMIT 1000');
@@ -766,7 +783,7 @@ if ($method === 'GET' && $path === '/admin/submissions') {
 }
 
 if (preg_match('#^/admin/submissions/(\d+)$#', $path, $m) && in_array($method, ['PUT', 'DELETE'], true)) {
-  require_staff();
+  require_cap('messages');
   $id = (int)$m[1];
   if ($method === 'PUT') {
     $read = !empty(body_json()['is_read']);
@@ -786,7 +803,7 @@ if (preg_match('#^/admin/submissions/(\d+)$#', $path, $m) && in_array($method, [
 
 /* one applicant document, to signed-in staff only */
 if ($method === 'GET' && preg_match('#^/admin/submissions/(\d+)/documents/(\d+)$#', $path, $m)) {
-  require_staff();
+  require_cap('messages');
   $st = db()->prepare('SELECT extra FROM submissions WHERE id = ?');
   $st->execute([(int)$m[1]]);
   $doc = ((json_col($st->fetchColumn() ?: '') ?: [])['documents'] ?? [])[(int)$m[2]] ?? null;
@@ -805,7 +822,7 @@ if ($method === 'GET' && preg_match('#^/admin/submissions/(\d+)/documents/(\d+)$
 
 /* the CV sits outside the web root: read back only by a signed-in member of staff */
 if ($method === 'GET' && preg_match('#^/admin/submissions/(\d+)/cv$#', $path, $m)) {
-  require_staff();
+  require_cap('messages');
   $st = db()->prepare('SELECT extra FROM submissions WHERE id = ?');
   $st->execute([(int)$m[1]]);
   $cv = (json_col($st->fetchColumn() ?: '') ?: [])['cv'] ?? null;
@@ -823,7 +840,7 @@ if ($method === 'GET' && preg_match('#^/admin/submissions/(\d+)/cv$#', $path, $m
 /* ---------- the office mailbox ---------- */
 
 if ($method === 'GET' && $path === '/admin/inbox') {
-  require_staff();
+  require_cap('messages');
   $where = match ($_GET['box'] ?? 'inbox') {
     'archived' => "direction = 'in' AND status = 'archived'",
     'sent' => "direction = 'out' AND status != 'deleted'",
@@ -843,7 +860,7 @@ if ($method === 'GET' && $path === '/admin/inbox') {
 }
 
 if (preg_match('#^/admin/inbox/(\d+)$#', $path, $m) && $method === 'GET') {
-  require_staff();
+  require_cap('messages');
   $st = db()->prepare('SELECT * FROM inbox_messages WHERE id = ?');
   $st->execute([(int)$m[1]]);
   $msg = $st->fetch();
@@ -865,7 +882,7 @@ if (preg_match('#^/admin/inbox/(\d+)$#', $path, $m) && $method === 'GET') {
 }
 
 if (preg_match('#^/admin/inbox/(\d+)/status$#', $path, $m) && $method === 'PUT') {
-  require_staff();
+  require_cap('messages');
   $status = body_json()['status'] ?? '';
   if (!in_array($status, ['unread', 'read', 'archived', 'deleted'], true)) fail(400, 'Bad status');
   db()->prepare('UPDATE inbox_messages SET status = ? WHERE id = ?')->execute([$status, (int)$m[1]]);
@@ -873,7 +890,7 @@ if (preg_match('#^/admin/inbox/(\d+)/status$#', $path, $m) && $method === 'PUT')
 }
 
 if (preg_match('#^/admin/inbox/(\d+)/attachment/([0-9a-f]{16})$#', $path, $m) && $method === 'GET') {
-  require_staff();
+  require_cap('messages');
   $st = db()->prepare('SELECT attachments FROM inbox_messages WHERE id = ?');
   $st->execute([(int)$m[1]]);
   foreach (json_col($st->fetchColumn() ?: '') ?: [] as $a) {
@@ -892,7 +909,7 @@ if (preg_match('#^/admin/inbox/(\d+)/attachment/([0-9a-f]{16})$#', $path, $m) &&
 
 /* a file staged for an outgoing message; compose and reply reference it by id */
 if ($method === 'POST' && $path === '/admin/inbox/attachment') {
-  require_staff();
+  require_cap('messages');
   $f = $_FILES['file'] ?? null;
   if (!$f || $f['error'] === UPLOAD_ERR_NO_FILE) fail(400, 'No file received');
   if ($f['error'] !== UPLOAD_ERR_OK) fail(400, 'Upload failed — please try a smaller file');
@@ -928,7 +945,7 @@ function outbound_attachments($list): array {
 }
 
 if (preg_match('#^/admin/inbox/(\d+)/reply$#', $path, $m) && $method === 'POST') {
-  $u = require_staff();
+  $u = require_cap('messages');
   $b = body_json();
   $text = trim((string)($b['text'] ?? ''));
   if ($text === '') fail(400, 'Write something first');
@@ -958,7 +975,7 @@ if (preg_match('#^/admin/inbox/(\d+)/reply$#', $path, $m) && $method === 'POST')
 
 /* a new message — also how a form submission is answered from the admin */
 if ($method === 'POST' && $path === '/admin/inbox/compose') {
-  $u = require_staff();
+  $u = require_cap('messages');
   $b = body_json();
   $to = strtolower(trim((string)($b['to'] ?? '')));
   $subject = trim((string)($b['subject'] ?? ''));
@@ -982,7 +999,7 @@ if ($method === 'POST' && $path === '/admin/inbox/compose') {
 /* ---------- the email log ---------- */
 
 if ($method === 'GET' && $path === '/admin/emails') {
-  require_staff();
+  require_cap('messages');
   $rows = [];
   foreach (db()->query('SELECT id, to_email, subject, provider, status, error, created_at, updated_at FROM email_log ORDER BY created_at DESC LIMIT 300') as $r) {
     $r['id'] = (int)$r['id'];
@@ -994,7 +1011,7 @@ if ($method === 'GET' && $path === '/admin/emails') {
 }
 
 if ($method === 'POST' && $path === '/admin/emails/test') {
-  $u = require_staff();
+  $u = require_cap('messages');
   rate_limit('mailtest', 300, 10);
   $to = strtolower(trim((string)(body_json()['to'] ?? '')));
   if (!valid_email($to)) $to = $u['email'];
@@ -1069,5 +1086,8 @@ if (preg_match('#^/admin/users/(\d+)/invite$#', $path, $m) && $method === 'POST'
   send_reset_link($user, 72 * 3600, true);
   send(200, ['ok' => true]);
 }
+
+/* the work boards: clients, applications, pre-enrolment */
+require __DIR__ . '/boards.php';
 
 fail(404, 'Not found');

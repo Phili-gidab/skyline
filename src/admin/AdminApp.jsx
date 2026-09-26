@@ -11,6 +11,9 @@ import Email from './pages/Email'
 import Media from './pages/Media'
 import Team from './pages/Team'
 import Account from './pages/Account'
+import Board from './pages/Board'
+import BoardSettings from './pages/BoardSettings'
+import { has, roleLabel } from './roles'
 import ErrorBoundary from './ErrorBoundary'
 import './admin.css'
 
@@ -211,10 +214,17 @@ function Layout() {
     navigate('/admin/login')
   }
 
-  const unreadForms = counts ? Object.values(counts.forms || {}).reduce((n, f) => n + f.unread, 0) : 0
+  const unreadForms = counts?.forms ? Object.values(counts.forms).reduce((n, f) => n + f.unread, 0) : 0
+
+  /* The menu is built from what this person's role allows. The server refuses
+     anything outside it regardless; this only keeps the menu honest. */
   const nav = [
     { section: null, items: [{ to: '/admin', label: 'Dashboard', icon: '◈', end: true }] },
-    {
+    has(user, 'boards') && {
+      section: 'Work',
+      items: (counts?.boards || []).map((b) => ({ to: `/admin/boards/${b.id}`, label: b.name, icon: '▦', count: b.items })),
+    },
+    has(user, 'messages') && {
       section: 'Messages',
       items: [
         { to: '/admin/submissions', label: 'Form submissions', icon: '▤', badge: unreadForms },
@@ -222,17 +232,17 @@ function Layout() {
         { to: '/admin/email', label: 'Email log', icon: '↗' },
       ],
     },
-    { section: 'Website', items: SINGLETONS.map((s) => ({ to: `/admin/s/${s.key}`, label: s.label, icon: s.icon })) },
-    { section: 'Lists', items: COLLECTIONS.map((c) => ({ to: `/admin/c/${c.key}`, label: c.label, icon: c.icon })) },
+    has(user, 'content') && { section: 'Website', items: SINGLETONS.map((s) => ({ to: `/admin/s/${s.key}`, label: s.label, icon: s.icon })) },
+    has(user, 'content') && { section: 'Lists', items: COLLECTIONS.map((c) => ({ to: `/admin/c/${c.key}`, label: c.label, icon: c.icon })) },
     {
       section: 'Settings',
       items: [
-        { to: '/admin/media', label: 'Media library', icon: '▧' },
-        ...(user?.role === 'admin' ? [{ to: '/admin/team', label: 'Team', icon: '☺' }] : []),
+        has(user, 'content') && { to: '/admin/media', label: 'Media library', icon: '▧' },
+        has(user, 'team') && { to: '/admin/team', label: 'Team', icon: '☺' },
         { to: '/admin/account', label: 'My account', icon: '⚿' },
-      ],
+      ].filter(Boolean),
     },
-  ]
+  ].filter((g) => g && g.items.length)
 
   return (
     <div className="adm">
@@ -245,7 +255,7 @@ function Layout() {
       <aside className={`adm-side${menu ? ' open' : ''}`}>
         <div className="adm-brand">
           <img src="/logo-compact-dark.svg" alt="Skyline" />
-          <small>Website admin</small>
+          <small>Office admin</small>
         </div>
         <nav>
           {nav.map((group, i) => (
@@ -256,6 +266,7 @@ function Layout() {
                   <i aria-hidden="true">{item.icon}</i>
                   <span>{item.label}</span>
                   {item.badge > 0 && <b className="adm-badge">{item.badge}</b>}
+                  {item.count !== undefined && <small className="adm-count-sm">{item.count}</small>}
                 </NavLink>
               ))}
             </div>
@@ -265,7 +276,7 @@ function Layout() {
           {user && (
             <p>
               {user.name || user.email}
-              <small>{user.role === 'admin' ? 'Administrator' : 'Editor'}</small>
+              <small>{roleLabel(user.role)}</small>
             </p>
           )}
           <a href="/" target="_blank" rel="noreferrer">
@@ -323,6 +334,8 @@ export default function AdminApp() {
         <Route path="media" element={<Media />} />
         <Route path="team" element={<Team />} />
         <Route path="account" element={<Account />} />
+        <Route path="boards/:id" element={<Board />} />
+        <Route path="boards/:id/settings" element={<BoardSettings />} />
       </Route>
       <Route path="*" element={<Navigate to="/admin" replace />} />
     </Routes>

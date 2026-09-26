@@ -125,6 +125,38 @@ export const api = {
   emails: () => request('/admin/emails'),
   sendTestEmail: (to) => request('/admin/emails/test', { method: 'POST', body: { to } }),
 
+  /* work boards */
+  boards: () => request('/admin/boards'),
+  board: (id) => request(`/admin/boards/${id}`),
+  createBoard: (payload) => request('/admin/boards', { method: 'POST', body: payload }),
+  updateBoard: (id, patch) => request(`/admin/boards/${id}`, { method: 'PUT', body: patch }),
+  deleteBoard: (id) => request(`/admin/boards/${id}`, { method: 'DELETE' }),
+  addColumn: (boardId, payload) => request(`/admin/boards/${boardId}/columns`, { method: 'POST', body: payload }),
+  updateColumn: (id, patch) => request(`/admin/columns/${id}`, { method: 'PUT', body: patch }),
+  deleteColumn: (id) => request(`/admin/columns/${id}`, { method: 'DELETE' }),
+  reorderColumns: (boardId, order) => request(`/admin/boards/${boardId}/columns/reorder`, { method: 'POST', body: { order } }),
+  addGroup: (boardId, payload) => request(`/admin/boards/${boardId}/groups`, { method: 'POST', body: payload }),
+  updateGroup: (id, patch) => request(`/admin/groups/${id}`, { method: 'PUT', body: patch }),
+  deleteGroup: (id) => request(`/admin/groups/${id}`, { method: 'DELETE' }),
+  addItem: (boardId, payload) => request(`/admin/boards/${boardId}/items`, { method: 'POST', body: payload }),
+  boardItem: (id) => request(`/admin/board-items/${id}`),
+  updateBoardItem: (id, patch) => request(`/admin/board-items/${id}`, { method: 'PUT', body: patch }),
+  archiveBoardItem: (id) => request(`/admin/board-items/${id}`, { method: 'DELETE' }),
+  reorderItems: (boardId, groupId, order) => request(`/admin/boards/${boardId}/items/reorder`, { method: 'POST', body: { group_id: groupId, order } }),
+  addUpdate: (itemId, body) => request(`/admin/board-items/${itemId}/updates`, { method: 'POST', body: { body } }),
+  deleteUpdate: (id) => request(`/admin/updates/${id}`, { method: 'DELETE' }),
+  revealSecret: (itemId, k) => request(`/admin/board-items/${itemId}/secrets/${k}/reveal`, { method: 'POST', body: {} }),
+  setSecret: (itemId, k, value) => request(`/admin/board-items/${itemId}/secrets/${k}`, { method: 'PUT', body: { value } }),
+  mapPerson: (boardId, payload) => request(`/admin/boards/${boardId}/map-person`, { method: 'POST', body: payload }),
+  fromSubmission: (boardId, submissionId, groupId) =>
+    request(`/admin/boards/${boardId}/from-submission`, { method: 'POST', body: { submission_id: submissionId, group_id: groupId } }),
+  openItemDocument: async (itemId, n) => {
+    const url = URL.createObjectURL(await fetchBlob(`/admin/board-items/${itemId}/documents/${n}?view=1`))
+    window.open(url, '_blank', 'noopener')
+    setTimeout(() => URL.revokeObjectURL(url), 60000)
+  },
+  downloadItemDocument: (itemId, n, filename) => saveBlob(`/admin/board-items/${itemId}/documents/${n}`, filename),
+
   users: () => request('/admin/users'),
   createUser: (payload) => request('/admin/users', { method: 'POST', body: payload }),
   updateUser: (id, patch) => request(`/admin/users/${id}`, { method: 'PUT', body: patch }),

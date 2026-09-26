@@ -45,6 +45,10 @@ cPanel → **MySQL Databases**:
    - `PRIVATE_DIR`: `/home/USER/skyline-private`;
    - `ADMIN_EMAIL` / `ADMIN_PASSWORD`: the first administrator (password 10+ characters);
    - `SETUP_TOKEN`: any long random string, for step 1.5;
+   - `SECRETS_KEY`: 32 random bytes, base64 — encrypts clients' portal passwords on the boards.
+     Generate it on the server (`php -r "echo base64_encode(random_bytes(32)), PHP_EOL;"`) and
+     **never change it**: a different key cannot open the passwords already stored. It is in the
+     home-directory backup (section 4); keep that backup.
    - email settings: see section 2 (they can be added later).
    Your home path (`/home/USER`) is shown on the right of the cPanel home page.
 2. cPanel → **File Manager** → your **home** folder (the one *above* `public_html`) → Upload it there.
@@ -97,59 +101,29 @@ invite the rest of the team under *Team* (they get a link to choose their own pa
 
 ---
 
-## 2. Email
+## 2. Email — Resend only
 
-The API sends in this order, stopping at the first that works: **Resend → the office mailbox (SMTP) → PHP mail()**.
-Every attempt is logged under *Email log* in the admin, with a *Send test* button.
+Mail leaves through Resend's API and nothing else: no SMTP, no PHP `mail()`. If Resend refuses a
+message, the reason is in the admin under *Email log* — nothing is sent some other way behind the
+office's back.
 
-### 2.1 A mailbox for the office (do this first)
+**Sending** (done for skyline-et.com): the domain is verified in Resend with a DKIM TXT record at
+`resend._domainkey`, and an MX + SPF TXT record on `send`, plus a CNAME `rsend`. `RESEND_API_KEY` is in
+the config. *Email log → Send test* confirms it; the log shows `resend` and, a few seconds later,
+`delivered`.
 
-cPanel → **Email Accounts** → create e.g. `office@skyline-et.com`. That is the address on the site, the one form
-notices go to (`NOTIFY_EMAIL`), and the fallback sender:
+> If you ever add DNS records through cPanel's command-line API (`uapi DNS mass_edit_zone`),
+> percent-encode the value: the API form-decodes its arguments, so every `+` in a DKIM key silently
+> becomes a space and the key never verifies.
 
-```php
-'NOTIFY_EMAIL' => 'office@skyline-et.com',
-'MAIL_FROM' => 'office@skyline-et.com',
-'SMTP_HOST' => 'mail.skyline-et.com',
-'SMTP_PORT' => 465,
-'SMTP_SECURE' => 'ssl',
-'SMTP_USER' => 'office@skyline-et.com',
-'SMTP_PASS' => '…the mailbox password…',
-```
-
-With just this, forms already email the office and confirm to visitors.
-
-### 2.2 Resend, for sending (recommended)
-
-Mail from shared hosting often lands in spam; Resend signs it properly and reports delivery back.
-
-1. Create an account at resend.com → **Domains → Add domain** → `skyline-et.com`.
-2. Resend shows DNS records (DKIM and SPF). Add each one exactly as shown in cPanel → **Zone Editor** →
-   skyline-et.com → **Manage**. Wait for Resend to show *Verified*.
-3. **API Keys → Create** → put it in the config as `RESEND_API_KEY`.
-4. Admin → *Email log* → **Send test**. It should say *via resend*.
-
-### 2.3 Resend, for receiving — the admin Mailbox
-
-The admin's Mailbox shows mail that Resend receives for you and passes to the site. Receiving needs MX records that
-point at Resend, and a domain can only have one set of MX records. So receive on a **subdomain** and keep the cPanel
-mailbox for the main address:
-
-1. Resend → **Domains → Add domain** → e.g. `mail.skyline-et.com` → enable **Receiving** and add the records it shows
-   (MX and any TXT) in the Zone Editor.
-2. cPanel → **Forwarders** → forward `office@skyline-et.com` to `office@mail.skyline-et.com`. The office keeps its
-   normal mailbox, and a copy of every message lands in the admin.
-3. Resend → **Webhooks → Add endpoint**: `https://skyline-et.com/api/resend/webhook`, with the events
-   `email.received`, `email.delivered`, `email.bounced`, `email.complained`, `email.delivery_delayed` and `email.opened`.
-4. Copy the webhook's **signing secret** (`whsec_…`) into the config as `RESEND_WEBHOOK_SECRET`.
-
-Until that secret is set the webhook refuses everything — deliberately: without it anyone could post messages into
-the office inbox. Replies sent from the admin go out from `MAIL_FROM` and thread in the recipient's mail client.
-
-(Alternatively, point skyline-et.com's own MX at Resend and let the admin Mailbox *be* the office inbox. Then the
-cPanel mailbox stops receiving, so only do it deliberately.)
-
----
+**Receiving into the admin Mailbox:** receiving is switched on for the domain in Resend, and the webhook
+(`https://skyline-et.com/api/resend/webhook`, events `email.received`, `email.delivered`, `email.bounced`,
+`email.complained`, `email.delivery_delayed`) is created with its signing secret in
+`RESEND_WEBHOOK_SECRET`. What remains is pointing the domain's mail at Resend — in cPanel **Zone
+Editor**, replace the three `entrap-0x.hostns.io` MX records with one MX, priority `9`, to
+`inbound-smtp.eu-west-1.amazonaws.com`, then set **Email Routing → Remote Mail Exchanger**. From then on
+all mail to @skyline-et.com arrives in the admin, not in cPanel webmail. To undo, restore the three
+`entrap-01/02/03.hostns.io` records (priority 10) and set routing back to *Local*.
 
 ## 3. Updating the site later
 
@@ -160,6 +134,20 @@ cPanel mailbox stops receiving, so only do it deliberately.)
   (1.5) — it only adds what is missing.
 - **New defaults** in `src/data/site.js`: run `npm run seed:export` before uploading `api/`. Setup loads a list only
   while it is empty, so it never replaces what the office has edited.
+
+## Client boards (the old spreadsheets)
+
+The three tracking sheets were imported once with:
+
+```bash
+python tools/sheets-to-boards.py <folder with the .xlsx exports> spec.json   # on your computer
+scp spec.json …:~/skyline-private/                                             # to the server
+SKYLINE_CONFIG=~/skyline-api-config.php php ~/skyline-api/import-boards.php ~/skyline-private/spec.json
+shred -u ~/skyline-private/spec.json                                           # and delete the local copy
+```
+
+The spec holds the sheets' passwords in plain text until the server seals them — delete it everywhere
+straight after. A board that already exists is skipped, so a second run cannot duplicate clients.
 
 ## 4. Backups
 

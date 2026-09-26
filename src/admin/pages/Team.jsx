@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { api } from '../api'
+import { ROLES } from '../roles'
 
 /* Admins manage the team. Nobody is ever emailed a password: a new colleague
    gets a one-time link to choose their own. */
@@ -75,8 +76,16 @@ export default function Team() {
         </div>
       </header>
       <p className="adm-intro">
-        <b>Editors</b> run the website content, the form submissions and the mailbox. <b>Administrators</b> can also add and remove people here.
+        Each person's role decides what they can see — the server enforces it, not just the menu.
       </p>
+      <dl className="adm-roles">
+        {Object.entries(ROLES).map(([k, r]) => (
+          <div key={k}>
+            <dt>{r.label}</dt>
+            <dd>{r.about}</dd>
+          </div>
+        ))}
+      </dl>
       {note && <p className="adm-ok">{note}</p>}
       {error && <p className="adm-err">{error}</p>}
 
@@ -101,8 +110,11 @@ export default function Team() {
                 </td>
                 <td>
                   <select value={u.role} onChange={(e) => update(u, { role: e.target.value })} disabled={u.email === user?.email}>
-                    <option value="editor">Editor</option>
-                    <option value="admin">Administrator</option>
+                    {Object.entries(ROLES).map(([k, r]) => (
+                      <option key={k} value={k}>
+                        {r.label}
+                      </option>
+                    ))}
                   </select>
                 </td>
                 <td>{u.last_login_at ? new Date(u.last_login_at).toLocaleString() : <span className="adm-dim">Never</span>}</td>
@@ -141,8 +153,11 @@ export default function Team() {
         <label className="af narrow">
           <span className="af-label">Role</span>
           <select value={add.role} onChange={(e) => setAdd({ ...add, role: e.target.value })}>
-            <option value="editor">Editor</option>
-            <option value="admin">Administrator</option>
+            {Object.entries(ROLES).map(([k, r]) => (
+              <option key={k} value={k}>
+                {r.label}
+              </option>
+            ))}
           </select>
         </label>
         <button className="adm-btn" disabled={busy}>

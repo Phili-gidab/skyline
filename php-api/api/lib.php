@@ -16,6 +16,7 @@ function cfg(): array {
   static $cfg = null;
   if ($cfg !== null) return $cfg;
   $candidates = [
+    (string)getenv('SKYLINE_CONFIG'), // command-line tools say where it is
     dirname($_SERVER['DOCUMENT_ROOT'] ?? dirname(__DIR__, 2)) . '/skyline-api-config.php',
     dirname(__DIR__, 3) . '/skyline-api-config.php',
     dirname(__DIR__) . '/config.php', // local dev fallback
@@ -119,7 +120,34 @@ function bearer_token(): ?string {
   return str_starts_with($h, 'Bearer ') ? substr($h, 7) : null;
 }
 
-const ROLES = ['admin', 'editor'];
+const ROLES = ['admin', 'manager', 'agent', 'frontdesk', 'editor'];
+
+/* What each role may do. Checked on the server for every request — the admin
+   hiding a menu item is a convenience, never the protection. */
+const CAPS = [
+  'content'    => ['admin', 'manager', 'editor'],             // website sections, lists, media
+  'messages'   => ['admin', 'manager', 'frontdesk'],          // submissions, mailbox, email log
+  'boards'     => ['admin', 'manager', 'agent', 'frontdesk'], // the client boards at all
+  'boards_all' => ['admin', 'manager', 'frontdesk'],          // every client, not only their own
+  'money'      => ['admin', 'manager'],                       // prepayments, fees
+  'secrets_all'=> ['admin'],                                  // every client's passwords (agents: own clients only)
+  'configure'  => ['admin'],                                  // board columns, groups, statuses
+  'team'       => ['admin'],
+];
+
+function can(array $user, string $cap): bool {
+  return in_array($user['role'], CAPS[$cap] ?? [], true);
+}
+
+function caps_of(array $user): array {
+  return array_values(array_filter(array_keys(CAPS), fn ($c) => can($user, $c)));
+}
+
+function require_cap(string $cap): array {
+  $user = require_staff();
+  if (!can($user, $cap)) fail(403, 'Your role does not allow that');
+  return $user;
+}
 
 /* Any signed-in staff member. The token says who they are; the database says
    whether they still may — so disabling someone, or changing their role,
@@ -148,6 +176,33 @@ function require_admin(): array {
 
 function hash_password(string $pw): string {
   return password_hash($pw, PASSWORD_BCRYPT, ['cost' => 11]);
+}
+
+/* ---------- sealed secrets (clients' portal passwords) ----------
+   AES-256-GCM with a key that lives only in the config file outside the web
+   root. A database dump alone reveals nothing; the tag means a tampered value
+   fails to open rather than decrypting to garbage. */
+
+function secrets_key(): string {
+  $k = base64_decode((string)(cfg()['SECRETS_KEY'] ?? ''), true);
+  if ($k === false || strlen($k) !== 32) fail(500, 'SECRETS_KEY is not configured on the server');
+  return $k;
+}
+
+function seal(string $plain): string {
+  $iv = random_bytes(12);
+  $tag = '';
+  $ct = openssl_encrypt($plain, 'aes-256-gcm', secrets_key(), OPENSSL_RAW_DATA, $iv, $tag);
+  if ($ct === false) fail(500, 'Could not encrypt');
+  return 'v1:' . base64_encode($iv . $tag . $ct);
+}
+
+function unseal(string $sealed): string {
+  if (!str_starts_with($sealed, 'v1:')) fail(500, 'Unknown secret format');
+  $raw = base64_decode(substr($sealed, 3), true) ?: '';
+  $plain = openssl_decrypt(substr($raw, 28), 'aes-256-gcm', secrets_key(), OPENSSL_RAW_DATA, substr($raw, 0, 12), substr($raw, 12, 16));
+  if ($plain === false) fail(500, 'Could not decrypt — the key may have changed');
+  return $plain;
 }
 
 /* ---------- rate limiting (fixed window, file-based) ---------- */
@@ -221,68 +276,12 @@ function brand(): array {
 }
 
 /* ---------- outgoing mail ----------
- * Three ways out, tried in order: Resend's API (preferred — DKIM-signed,
- * delivery reported back by webhook), authenticated SMTP through the office's
- * own cPanel mailbox, then PHP mail() as the last resort. Every attempt is
- * written to email_log so the office can see what the site sent and whether
- * it arrived. Sending never throws: a mail failure must not lose a form.
+ * One way out: Resend's API. Mail is DKIM-signed for skyline-et.com and its
+ * delivery is reported back by webhook. There is deliberately no fallback —
+ * a failure is written to email_log with Resend's own reason, where the
+ * office can see it, rather than the mail quietly leaving some other way.
+ * Sending never throws: a mail failure must not lose a form.
  */
-
-/* Speaks just enough SMTP to hand a message to the office mailbox, so mail
-   leaves as office@skyline-et.com with SPF/DKIM that match the domain. */
-function smtp_send(string $to, string $encSubject, string $body, string $headers, array $c): bool {
-  $host = (string)($c['SMTP_HOST'] ?? '');
-  $user = (string)($c['SMTP_USER'] ?? '');
-  $pass = (string)($c['SMTP_PASS'] ?? '');
-  if ($host === '' || $user === '' || $pass === '') return false;
-  $port = (int)($c['SMTP_PORT'] ?? 465);
-  $secure = $c['SMTP_SECURE'] ?? 'ssl';                 // 'ssl' (465), 'tls' (587), 'none' (local dev only)
-  $from = (string)($c['MAIL_FROM'] ?? $user);
-  $dsn = ($secure === 'ssl' ? 'ssl://' : '') . $host . ':' . $port;
-
-  $fp = @stream_socket_client($dsn, $errno, $errstr, 20);
-  if (!$fp) { error_log("Skyline SMTP: connect failed $dsn ($errstr)"); return false; }
-  stream_set_timeout($fp, 20);
-
-  $read = function () use ($fp) {
-    $data = '';
-    while (($line = fgets($fp, 600)) !== false) {
-      $data .= $line;
-      if (strlen($line) < 4 || $line[3] === ' ') break;
-    }
-    return $data;
-  };
-  $cmd = function (string $line) use ($fp, $read) { fwrite($fp, "$line\r\n"); return $read(); };
-  $ok = fn(string $r, string $code) => str_starts_with(ltrim($r), $code);
-
-  $read();
-  $ehlo = 'EHLO ' . (parse_url(site_url(), PHP_URL_HOST) ?: 'skyline-et.com');
-  $cmd($ehlo);
-  if ($secure === 'tls') {
-    if (!$ok($cmd('STARTTLS'), '220') || !stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
-      fclose($fp); error_log('Skyline SMTP: STARTTLS failed'); return false;
-    }
-    $cmd($ehlo);
-  }
-  $cmd('AUTH LOGIN');
-  $cmd(base64_encode($user));
-  if (!$ok($cmd(base64_encode($pass)), '235')) { fclose($fp); error_log('Skyline SMTP: authentication rejected'); return false; }
-  if (!$ok($cmd("MAIL FROM:<$from>"), '250')) { fclose($fp); error_log('Skyline SMTP: sender rejected'); return false; }
-  if (!$ok($cmd("RCPT TO:<$to>"), '2')) { fclose($fp); error_log("Skyline SMTP: recipient $to rejected"); return false; }
-  if (!$ok($cmd('DATA'), '354')) { fclose($fp); return false; }
-
-  /* SMTP wants CRLF endings. One regex, not str_replace with an array: that
-     runs its replacements one after another, so a CRLF already in the body
-     (every MIME part has them) came out as CR CR LF CR LF and the attachment
-     boundaries broke. Dot-stuffing keeps a lone "." from ending the message. */
-  $safeBody = preg_replace('/^\./m', '..', preg_replace("/\r\n|\r|\n/", "\r\n", $body));
-  $message = "To: $to\r\nSubject: $encSubject\r\nDate: " . date('r') . "\r\n$headers\r\n$safeBody\r\n.";
-  $sent = $ok($cmd($message), '250');
-  $cmd('QUIT');
-  fclose($fp);
-  if (!$sent) error_log("Skyline SMTP: server refused the message to $to");
-  return $sent;
-}
 
 function mail_from(): array {
   $c = cfg();
@@ -370,53 +369,13 @@ function resend_send(string $to, string $subject, string $text, string $replyTo,
   return ['sent' => false, 'id' => null, 'error' => $body['message'] ?? ($curlErr ?: "HTTP $status")];
 }
 
-/* the SMTP and mail() routes carry attachments as a hand-built MIME body */
-function mime_body(string $text, array $attachments, string &$contentType): string {
-  $files = [];
-  foreach ($attachments as $a) {
-    $path = $a['path'] ?? '';
-    if (is_file($path) && filesize($path) <= 8 * 1024 * 1024) $files[] = $a;
-  }
-  if (!$files) { $contentType = 'text/plain; charset=UTF-8'; return $text; }
-  $boundary = 'sky_' . bin2hex(random_bytes(12));
-  $contentType = "multipart/mixed; boundary=\"$boundary\"";
-  $out = "--$boundary\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n$text\r\n";
-  foreach ($files as $a) {
-    $name = str_replace(['"', "\r", "\n"], '', (string)($a['filename'] ?? basename($a['path'])));
-    $out .= "--$boundary\r\nContent-Type: application/octet-stream; name=\"$name\"\r\n"
-      . "Content-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename=\"$name\"\r\n\r\n"
-      . chunk_split(base64_encode((string)file_get_contents($a['path']))) . "\r\n";
-  }
-  return $out . "--$boundary--";
-}
-
 function send_mail(string $to, string $subject, string $body, string $replyTo = '', array $opts = []): void {
   if (!valid_email($to)) return;
-  $c = cfg();
-  [$from, $fromName] = mail_from();
-
-  /* 1. Resend */
-  $r = resend_send($to, $subject, $body, $replyTo, $c, $opts);
+  $r = resend_send($to, $subject, $body, $replyTo, cfg(), $opts);
   if ($r['sent']) { log_mail($to, $subject, 'resend', 'sent', $r['id']); return; }
-  $firstError = $r['error'];
-
-  /* 2. authenticated SMTP through the office mailbox */
-  $contentType = '';
-  $mime = mime_body($body, $opts['attachments'] ?? [], $contentType);
-  $headers = "From: $fromName <$from>\r\n";
-  if ($replyTo && valid_email($replyTo)) $headers .= "Reply-To: $replyTo\r\n";
-  foreach (($opts['headers'] ?? []) as $k => $v) {
-    if (preg_match('/^[A-Za-z-]+$/', (string)$k)) $headers .= "$k: " . str_replace(["\r", "\n"], '', (string)$v) . "\r\n";
-  }
-  $headers .= "MIME-Version: 1.0\r\nContent-Type: $contentType\r\n";
-  $encSubject = '=?UTF-8?B?' . base64_encode(str_replace(["\r", "\n"], ' ', $subject)) . '?=';
-  if (smtp_send($to, $encSubject, $mime, $headers, $c)) { log_mail($to, $subject, 'smtp', 'sent'); return; }
-
-  /* 3. local sendmail */
-  if (@mail($to, $encSubject, $mime, $headers)) { log_mail($to, $subject, 'mail', 'sent'); return; }
-
-  log_mail($to, $subject, 'none', 'failed', null, $firstError ?: 'all transports failed');
-  error_log("Skyline API: mail to $to failed ($subject)" . ($firstError ? " — $firstError" : ''));
+  $why = $r['error'] ?: 'RESEND_API_KEY is not set';
+  log_mail($to, $subject, 'resend', 'failed', null, $why);
+  error_log("Skyline API: mail to $to failed ($subject) — $why");
 }
 
 function notify(string $subject, string $body, string $replyTo = '', array $opts = []): void {

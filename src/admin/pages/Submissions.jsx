@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { FORM_KINDS, EXTRA_LABELS } from '../schemas'
 import { downloadCsv } from '../csv'
@@ -39,6 +39,21 @@ export default function Submissions() {
   const [compose, setCompose] = useState(null)
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
+  const navigate = useNavigate()
+  const { counts } = useOutletContext() || {}
+  const boards = counts?.boards || []
+
+  /* a website submission becomes a client on a board, documents and all */
+  const toBoard = async (s, boardId) => {
+    if (!boardId) return
+    setError('')
+    try {
+      const r = await api.fromSubmission(Number(boardId), s.id)
+      navigate(`/admin/boards/${boardId}?open=${r.id}`)
+    } catch (e) {
+      setError(e.message)
+    }
+  }
 
   const load = () =>
     api
@@ -221,6 +236,16 @@ export default function Submissions() {
                     <a className="adm-btn small ghost" href={`tel:${s.phone}`}>
                       Call
                     </a>
+                    {boards.length > 0 && (
+                      <select className="adm-btn small ghost adm-select-btn" value="" onChange={(e) => toBoard(s, e.target.value)} aria-label="Add to a board">
+                        <option value="">Add to a board…</option>
+                        {boards.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     <button className="adm-btn small ghost" onClick={() => markUnread(s)}>
                       Mark unread
                     </button>

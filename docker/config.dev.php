@@ -32,5 +32,6 @@ return [
 
   'ADMIN_EMAIL' => 'admin@skyline.test',
   'ADMIN_PASSWORD' => 'skyline-admin-dev',
+  'SECRETS_KEY' => 'ZGV2LW9ubHktc2VjcmV0cy1rZXktMzItYnl0ZXMhISE=',
   'SETUP_TOKEN' => 'dev-setup-token',
 ];
