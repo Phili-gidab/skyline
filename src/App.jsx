@@ -1,5 +1,9 @@
 import React, { useEffect } from 'react'
 
+/* the site's stylesheet loads with the site only: the admin is its own app
+   with its own styles, and the two sets of class names must never meet */
+import './styles/site.css'
+
 import Header from './components/site/Header'
 import Hero, { Stats } from './components/site/Hero'
 import Ribbon from './components/site/Ribbon'

@@ -709,7 +709,7 @@ if (preg_match('#^/admin/board-items/(\d+)/secrets/([a-z][a-z0-9_]{0,39})(/revea
   if (!can_reveal($u, $item)) fail(403, 'Only an administrator or this client\'s own agent can see or change their passwords');
 
   if ($method === 'POST' && !empty($m[3])) {
-    rate_limit('reveal', 60, 30); // a burst of reveals is not someone reading one file
+    rate_limit('reveal', 60, 30, 'user:' . $u['id']); // a burst of reveals is not someone reading one file
     $st = db()->prepare('SELECT sealed FROM item_secrets WHERE item_id = ? AND k = ?');
     $st->execute([$itemId, $k]);
     $sealed = $st->fetchColumn();

@@ -10,6 +10,7 @@
 
 declare(strict_types=1);
 require __DIR__ . '/lib.php';
+require __DIR__ . '/mail.php';
 
 error_reporting(E_ALL);
 ini_set('display_errors', '0');
@@ -82,17 +83,37 @@ if ($method === 'POST' && $path === '/setup') {
   send(200, ['ok' => true, 'log' => run_setup(db(), cfg())]);
 }
 
+/* Staff sign in with their own address at the office's domain (just "hana"
+   will do). The private address they gave for password resets also works,
+   so nobody is locked out while they get used to the new one. */
+function find_login(string $input): array {
+  $input = strtolower(trim($input));
+  if ($input === '') return [];
+  $own = own_address_from($input);
+  $st = db()->prepare('SELECT * FROM users WHERE is_disabled = 0 AND (email = ? OR email = ? OR recovery_email = ?) ORDER BY email = ? DESC');
+  $st->execute([$own ?: $input, $input, $input, $own ?: $input]);
+  return $st->fetchAll();
+}
+
 if ($method === 'POST' && $path === '/auth/login') {
-  rate_limit('login', 300, 10);
   $b = body_json();
-  $email = strtolower(clean($b['email'] ?? '', 190));
+  $login = clean($b['email'] ?? '', 190);
   $password = (string)($b['password'] ?? '');
-  if ($email === '' || $password === '') fail(400, 'Email and password are required');
-  $st = db()->prepare('SELECT * FROM users WHERE email = ? AND is_disabled = 0');
-  $st->execute([$email]);
-  $user = $st->fetch();
-  if (!$user || !password_verify($password, str_replace('$2a$', '$2y$', $user['password_hash']))) {
-    fail(401, 'Email or password is incorrect');
+  if ($login === '' || $password === '') fail(400, 'Your address and password are required');
+  /* failed attempts only, from this connection and against this account */
+  $acct = 'acct:' . strtolower(own_address_from($login) ?: $login);
+  if (rate_blocked('login', 900, 20) || rate_blocked('login', 900, 8, $acct)) fail(429, 'Too many wrong attempts — wait a few minutes and try again');
+  $user = null;
+  $candidates = find_login($login);
+  foreach ($candidates as $candidate) {
+    if (password_verify($password, str_replace('$2a$', '$2y$', $candidate['password_hash']))) { $user = $candidate; break; }
+  }
+  /* the same work whether or not the account exists, so timing gives nothing away */
+  if (!$candidates) password_verify($password, '$2y$11$abcdefghijklmnopqrstuuJxQnVg3BxVdC6ZMaBLmJ4jlS2ICmr2i');
+  if (!$user) {
+    rate_fail('login', 900);
+    rate_fail('login', 900, $acct);
+    fail(401, 'That address or password is not right');
   }
   db()->prepare('UPDATE users SET last_login_at = NOW() WHERE id = ?')->execute([$user['id']]);
   send(200, [
@@ -105,11 +126,9 @@ if ($method === 'POST' && $path === '/auth/login') {
    discover which addresses have accounts. */
 if ($method === 'POST' && $path === '/auth/forgot') {
   rate_limit('forgot', 900, 5);
-  $email = strtolower(clean(body_json()['email'] ?? '', 190));
-  if (valid_email($email)) {
-    $st = db()->prepare('SELECT id, email, name FROM users WHERE email = ? AND is_disabled = 0');
-    $st->execute([$email]);
-    if ($user = $st->fetch()) send_reset_link($user, 3600, false);
+  foreach (find_login(clean(body_json()['email'] ?? '', 190)) as $user) {
+    send_reset_link($user, 3600, false);
+    break;
   }
   send(200, ['ok' => true]);
 }
@@ -125,35 +144,49 @@ if ($method === 'POST' && $path === '/auth/reset') {
   $st->execute([hash('sha256', $token)]);
   $reset = $st->fetch();
   if (!$reset) fail(400, 'This link has expired or was already used — ask for a new one');
-  db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([hash_password($password), $reset['user_id']]);
+  /* a new password ends every session signed with the old one */
+  db()->prepare('UPDATE users SET password_hash = ?, token_version = token_version + 1 WHERE id = ?')->execute([hash_password($password), $reset['user_id']]);
   db()->prepare('UPDATE password_resets SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL')->execute([$reset['user_id']]);
   send(200, ['ok' => true]);
 }
 
+/* Where a sign-in link may go: the person's private address, never one at
+   the office's domain — those are read inside the admin, a shared box by
+   several people, so a link there would hand the account to whoever reads it. */
+function reset_destination(array $user): string {
+  $r = strtolower(trim((string)($user['recovery_email'] ?? '')));
+  if ($r !== '' && valid_email($r) && !own_address($r)) return $r;
+  $e = strtolower((string)$user['email']);
+  return own_address($e) ? '' : $e;
+}
+
 /* a one-time link to set a password — for a forgotten one, or a new colleague */
-function send_reset_link(array $user, int $ttl, bool $invite): void {
+function send_reset_link(array $user, int $ttl, bool $invite): bool {
+  $to = reset_destination($user);
+  if ($to === '') return false;
   $token = bin2hex(random_bytes(32));
   db()->prepare('INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL ? SECOND))')
     ->execute([(int)$user['id'], hash('sha256', $token), $ttl]);
   $link = site_url('/admin/reset?token=' . $token);
   $who = $user['name'] ?: $user['email'];
   if ($invite) {
-    send_mail(
-      $user['email'],
-      'Your Skyline admin account',
-      "Hello $who,\n\nAn account has been created for you on the Skyline Travel Solution website admin.\n\n"
+    $r = send_mail(
+      $to,
+      'Your Skyline office account',
+      "Hello $who,\n\nAn account has been made for you on the Skyline Travel Solution office admin, with your own mailbox: {$user['email']}.\n\n"
       . "Choose your password here (the link works for " . round($ttl / 3600) . " hours):\n$link\n\n"
-      . "Then sign in at " . site_url('/admin') . " with this email address.\n\nSkyline Travel Solution"
+      . "Then sign in at " . site_url('/admin') . " with {$user['email']}.\n\nSkyline Travel Solution"
     );
   } else {
-    send_mail(
-      $user['email'],
-      'Reset your Skyline admin password',
-      "Hello $who,\n\nSomeone — hopefully you — asked to reset the password for this admin account.\n\n"
+    $r = send_mail(
+      $to,
+      'Reset your Skyline password',
+      "Hello $who,\n\nSomeone — hopefully you — asked to reset the password for {$user['email']}.\n\n"
       . "Choose a new password here (the link works for one hour, once):\n$link\n\n"
       . "If you did not ask for this, ignore this email; your password has not changed.\n\nSkyline Travel Solution"
     );
   }
+  return $r['sent'];
 }
 
 if ($method === 'GET' && $path === '/content') {
@@ -310,37 +343,67 @@ if ($method === 'POST' && $path === '/submit') {
 
   db()->prepare('INSERT INTO submissions (kind, name, email, phone, message, extra) VALUES (?,?,?,?,?,?)')
     ->execute([$kind, $name, $email ?: null, $phone, $message ?: null, $extra ? json_encode($extra, JSON_UNESCAPED_UNICODE) : null]);
+  $submissionId = (int)db()->lastInsertId();
 
   /* the office notice */
   $lines = "Name:        $name\nPhone:       $phone\nEmail:       " . ($email ?: '—') . "\n";
   foreach ($form['extra'] as $key => $label) {
     if (isset($extra[$key])) $lines .= str_pad("$label:", 13) . $extra[$key] . "\n";
   }
-  if ($cv) $lines .= "CV:          {$cv['filename']} (attached)\n";
+  $open = site_url('/admin/submissions?kind=' . $kind . '&open=' . $submissionId);
+  $notifyBox = website_mailbox();
+  if (!$notifyBox && ($notifyTo = strtolower(trim((string)(cfg()['NOTIFY_EMAIL'] ?? '')))) !== '') $notifyBox = mailbox_by_address($notifyTo);
 
-  /* Documents ride along on the email only while they are small enough for
-     every mail server to accept; past that the email lists them and the files
-     stay in the admin, which is where they are kept either way. */
-  $attach = $cv ? [['path' => cv_dir() . '/' . $cv['stored'], 'filename' => $cv['filename']]] : [];
-  if ($docs) {
-    $size = array_sum(array_column($docs, 'size'));
-    $inline = $size <= 10 * 1024 * 1024;
-    $lines .= "\nDocuments (" . count($docs) . ($inline ? ', attached' : ', in the admin — too large to attach') . "):\n";
-    foreach ($docs as $d) {
-      $lines .= '  · ' . str_pad($d['label'] . ':', 26) . $d['filename'] . ' (' . round($d['size'] / 1024) . " KB)\n";
-      if ($inline) $attach[] = ['path' => document_dir() . '/' . $d['stored'], 'filename' => $d['label'] . ' — ' . $d['filename']];
+  if ($notifyBox) {
+    /* The website's mailbox is one of ours: file the notice there directly.
+       The files stay with the submission, one click away, rather than a
+       second copy of every passport going round through the mail. Read in
+       the admin's own font, so no column padding. */
+    $lines = "Name: $name\nPhone: $phone\nEmail: " . ($email ?: '—') . "\n";
+    foreach ($form['extra'] as $key => $label) {
+      if (isset($extra[$key])) $lines .= "$label: {$extra[$key]}\n";
     }
+    if ($cv) $lines .= "CV: {$cv['filename']}\n";
+    if ($docs) {
+      $lines .= "\nDocuments (" . count($docs) . "):\n";
+      foreach ($docs as $d) $lines .= "· {$d['label']}: {$d['filename']} (" . round($d['size'] / 1024) . " KB)\n";
+    }
+    deliver_local($notifyBox, [
+      'from_email' => $email ?: 'website@' . mail_domain(),
+      'from_name' => $name,
+      'reply_to' => $email,
+      'subject' => "{$form['label']} — $name",
+      'text' => "A new {$form['label']} arrived through the website.\n\n$lines\nMessage:\n" . ($message ?: '—') . "\n\n"
+        . ($email ? 'Reply here to answer them directly, or ' : 'They left no email — call them back, or ')
+        . "open it in the admin: $open",
+      'source' => 'form',
+      'submission_id' => $submissionId,
+    ]);
+  } else {
+    if ($cv) $lines .= "CV:          {$cv['filename']} (attached)\n";
+    /* Documents ride along on the email only while they are small enough for
+       every mail server to accept; past that the email lists them and the files
+       stay in the admin, which is where they are kept either way. */
+    $attach = $cv ? [['path' => cv_dir() . '/' . $cv['stored'], 'filename' => $cv['filename']]] : [];
+    if ($docs) {
+      $size = array_sum(array_column($docs, 'size'));
+      $inline = $size <= 10 * 1024 * 1024;
+      $lines .= "\nDocuments (" . count($docs) . ($inline ? ', attached' : ', in the admin — too large to attach') . "):\n";
+      foreach ($docs as $d) {
+        $lines .= '  · ' . str_pad($d['label'] . ':', 26) . $d['filename'] . ' (' . round($d['size'] / 1024) . " KB)\n";
+        if ($inline) $attach[] = ['path' => document_dir() . '/' . $d['stored'], 'filename' => $d['label'] . ' — ' . $d['filename']];
+      }
+    }
+    notify(
+      "{$form['label']} — $name",
+      "A new {$form['label']} arrived through the website.\n\n$lines\n"
+      . 'Message:' . "\n" . ($message ?: '—') . "\n\n"
+      . ($email ? 'Reply to this email to answer them directly, or ' : 'Call them back, or ')
+      . "open it in the admin: $open",
+      $email,
+      $attach ? ['attachments' => $attach] : []
+    );
   }
-
-  notify(
-    "{$form['label']} — $name",
-    "A new {$form['label']} arrived through the website.\n\n$lines\n"
-    . 'Message:' . "\n" . ($message ?: '—') . "\n\n"
-    . ($email ? 'Reply to this email to answer them directly, or ' : 'Call them back, or ')
-    . 'open it in the admin: ' . site_url('/admin/submissions?kind=' . $kind),
-    $email,
-    $attach ? ['attachments' => $attach] : []
-  );
 
   /* the confirmation — the office still answers personally; this only says it arrived */
   if ($email !== '') {
@@ -378,129 +441,13 @@ if ($method === 'POST' && $path === '/submit') {
         . "You do not need to send these again on Telegram or WhatsApp.\n\nNothing is payable until your visa is approved.",
       ],
     };
-    send_mail($email, $ack[0], $ack[1] . $sign, cfg()['NOTIFY_EMAIL'] ?? '');
+    send_mail($email, $ack[0], $ack[1] . $sign, notify_address());
   }
 
   send(201, ['ok' => true]);
 }
 
 /* ---------- delivery events and incoming mail from Resend (Svix-signed) ---------- */
-
-function parse_address(string $raw): array {
-  $raw = trim($raw);
-  if (preg_match('/^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/', $raw, $m)) {
-    return ['name' => trim($m[1]), 'email' => strtolower(trim($m[2]))];
-  }
-  return ['name' => '', 'email' => strtolower($raw)];
-}
-
-function address_list($raw): string {
-  if (is_array($raw)) $raw = implode(', ', array_map(fn ($t) => is_array($t) ? ($t['address'] ?? '') : (string)$t, $raw));
-  return mb_substr(trim((string)$raw), 0, 190);
-}
-
-/* replies stay in their thread; a fresh subject starts one */
-function thread_key(string $subject, string $inReplyTo = ''): string {
-  if ($inReplyTo !== '') return substr('r_' . sha1($inReplyTo), 0, 40);
-  $norm = strtolower(trim(preg_replace('/^\s*(re|fwd|fw)\s*:\s*/i', '', $subject)));
-  return substr('s_' . sha1($norm), 0, 40);
-}
-
-function html_to_text(string $html): string {
-  $s = preg_replace('#<(script|style)\b[^>]*>.*?</\1>#is', '', $html);
-  $s = preg_replace('#<br\s*/?>#i', "\n", $s);
-  $s = preg_replace('#</(p|div|tr|h[1-6])>#i', "\n\n", $s);
-  return trim(html_entity_decode(strip_tags($s), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
-}
-
-function resend_api_get(string $path): ?array {
-  $key = cfg()['RESEND_API_KEY'] ?? '';
-  if ($key === '') return null;
-  $ch = curl_init('https://api.resend.com' . $path);
-  curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20,
-    CURLOPT_HTTPHEADER => ["Authorization: Bearer $key"]]);
-  $raw = curl_exec($ch);
-  $ok = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE) < 300;
-  curl_close($ch);
-  return $ok ? (json_decode($raw ?: '', true) ?: null) : null;
-}
-
-/* attachments land OUTSIDE the web root and are only served through an
-   authenticated endpoint — people send passports and bank statements */
-function mail_attachment_dir(): string { return private_dir('mail-attachments'); }
-
-function store_attachments(array $attachments, string $emailId): array {
-  $out = [];
-  $dir = mail_attachment_dir();
-  $key = cfg()['RESEND_API_KEY'] ?? '';
-  foreach ($attachments as $att) {
-    try {
-      $bytes = null;
-      if (!empty($att['content'])) {
-        $bytes = base64_decode((string)$att['content'], true) ?: null;
-      } else {
-        /* the listing carries only metadata — ask for a short-lived signed link, then pull the bytes */
-        $url = (string)($att['download_url'] ?? '');
-        if ($url === '' && !empty($att['id']) && $emailId !== '' && $key !== '') {
-          $meta = resend_api_get('/emails/receiving/' . rawurlencode($emailId) . '/attachments/' . rawurlencode((string)$att['id']));
-          $url = (string)($meta['download_url'] ?? '');
-        }
-        if ($url !== '') {
-          $ch = curl_init($url);
-          curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 60, CURLOPT_FOLLOWLOCATION => true]);
-          $body = curl_exec($ch);
-          $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-          curl_close($ch);
-          if ($body !== false && $code < 300) $bytes = $body;
-        }
-      }
-      if ($bytes === null || $bytes === '' || strlen($bytes) > 25 * 1024 * 1024) continue;
-      $name = preg_replace('/[^A-Za-z0-9._-]/', '_', (string)($att['filename'] ?? 'attachment'));
-      $id = bin2hex(random_bytes(8));
-      file_put_contents("$dir/{$id}_{$name}", $bytes);
-      $out[] = [
-        'id' => $id,
-        'filename' => mb_substr((string)($att['filename'] ?? $name), 0, 190),
-        'stored' => "{$id}_{$name}",
-        'content_type' => (string)($att['content_type'] ?? $att['contentType'] ?? 'application/octet-stream'),
-        'size' => strlen($bytes),
-      ];
-    } catch (Throwable $e) {
-      error_log('Skyline mail: attachment failed — ' . $e->getMessage()); // one bad file must not lose the message
-    }
-  }
-  return $out;
-}
-
-function store_inbound(array $d): void {
-  $emailId = (string)($d['email_id'] ?? $d['id'] ?? '');
-  $full = $emailId !== '' ? resend_api_get('/emails/receiving/' . rawurlencode($emailId)) : null;
-
-  $messageId = $emailId ?: (string)($d['message_id'] ?? bin2hex(random_bytes(8)));
-  $st = db()->prepare('SELECT id FROM inbox_messages WHERE message_id = ?');
-  $st->execute([$messageId]);
-  if ($st->fetchColumn()) return; // Resend retries — store once
-
-  $from = parse_address(is_array($d['from'] ?? null) ? ($d['from']['address'] ?? '') : (string)($d['from'] ?? ''));
-  $subject = (string)($d['subject'] ?? '(no subject)');
-  $html = (string)($full['html'] ?? $d['html'] ?? '');
-  $text = (string)($full['text'] ?? $d['text'] ?? '');
-  if ($text === '' && $html !== '') $text = html_to_text($html);
-  $headers = $d['headers'] ?? [];
-  $inReplyTo = is_array($headers) ? (string)($headers['in-reply-to'] ?? $headers['In-Reply-To'] ?? '') : '';
-  $attachments = store_attachments($full['attachments'] ?? ($d['attachments'] ?? []), $emailId);
-
-  db()->prepare('INSERT INTO inbox_messages (resend_id, message_id, thread_key, direction, from_email, from_name, to_email, cc_email, subject, text_body, html_body, attachments, in_reply_to, status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-    ->execute([
-      $emailId ?: null, $messageId, thread_key($subject, $inReplyTo), 'in',
-      mb_substr($from['email'], 0, 190), mb_substr($from['name'], 0, 190) ?: null,
-      address_list($d['to'] ?? ''), address_list($d['cc'] ?? '') ?: null,
-      mb_substr($subject, 0, 255), $text, $html ?: null,
-      $attachments ? json_encode($attachments, JSON_UNESCAPED_UNICODE) : null,
-      mb_substr($inReplyTo, 0, 190) ?: null, 'unread',
-    ]);
-  /* deliberately no notify(): the office address may be this very mailbox */
-}
 
 if ($method === 'POST' && $path === '/resend/webhook') {
   $raw = file_get_contents('php://input') ?: '';
@@ -543,6 +490,12 @@ if ($method === 'POST' && $path === '/resend/webhook') {
       ? "UPDATE email_log SET status = ? WHERE provider_id = ? AND status IN ('sent', 'delivered')"
       : 'UPDATE email_log SET status = ? WHERE provider_id = ?';
     db()->prepare($sql)->execute([$statusMap[$type], $emailId]);
+    $why = $event['data']['bounce']['message'] ?? $event['data']['bounce']['subType'] ?? null;
+    if ($why && $statusMap[$type] === 'bounced') {
+      db()->prepare('UPDATE email_log SET error = ? WHERE provider_id = ?')->execute([mb_substr((string)$why, 0, 500), $emailId]);
+    }
+    /* and on the Sent copy in the mailbox it went from */
+    track_delivery((string)$emailId, $statusMap[$type], (array)$event['data']);
   }
   send(200, ['received' => true]);
 }
@@ -553,7 +506,41 @@ if ($method === 'POST' && $path === '/resend/webhook') {
 
 if ($method === 'GET' && $path === '/auth/me') {
   $u = require_staff();
-  send(200, ['id' => $u['id'], 'email' => $u['email'], 'name' => $u['name'], 'role' => $u['role'], 'caps' => caps_of($u)]);
+  $st = db()->prepare('SELECT recovery_email, signature FROM users WHERE id = ?');
+  $st->execute([$u['id']]);
+  $extra = $st->fetch() ?: [];
+  send(200, [
+    'id' => $u['id'], 'email' => $u['email'], 'name' => $u['name'], 'role' => $u['role'], 'caps' => caps_of($u),
+    'recovery_email' => $extra['recovery_email'] ?? null,
+    'signature' => user_signature($u),
+    'signature_custom' => trim((string)($extra['signature'] ?? '')) !== '',
+    'mail_domain' => mail_domain(),
+  ]);
+}
+
+/* what people set for themselves: the name others see, the private address
+   their reset links go to, and the signature under what they write */
+if ($method === 'PUT' && $path === '/auth/profile') {
+  $u = require_staff();
+  $b = body_json();
+  if (array_key_exists('name', $b)) {
+    $name = clean($b['name'], 120);
+    if ($name === '') fail(400, 'Your name is required');
+    /* their own mailbox's sender name follows, unless it was set to something else */
+    db()->prepare("UPDATE mailboxes SET name = ? WHERE kind = 'personal' AND owner_id = ? AND name = ?")->execute([$name, $u['id'], (string)$u['name']]);
+    db()->prepare('UPDATE users SET name = ? WHERE id = ?')->execute([$name, $u['id']]);
+  }
+  if (array_key_exists('recovery_email', $b)) {
+    $r = strtolower(clean($b['recovery_email'], 190));
+    if ($r !== '' && !valid_email($r)) fail(400, 'That email address does not look right');
+    if ($r !== '' && own_address($r)) fail(400, 'Use a private address, not one at @' . mail_domain() . ' — you need it when you cannot sign in');
+    db()->prepare('UPDATE users SET recovery_email = ? WHERE id = ?')->execute([$r ?: null, $u['id']]);
+  }
+  if (array_key_exists('signature', $b)) {
+    $sig = mb_substr(trim(str_replace("\r", '', (string)$b['signature'])), 0, 1000);
+    db()->prepare('UPDATE users SET signature = ? WHERE id = ?')->execute([$sig !== '' ? $sig : null, $u['id']]);
+  }
+  send(200, ['ok' => true]);
 }
 
 if ($method === 'POST' && $path === '/auth/password') {
@@ -568,15 +555,38 @@ if ($method === 'POST' && $path === '/auth/password') {
   if (!password_verify($current, str_replace('$2a$', '$2y$', (string)$st->fetchColumn()))) {
     fail(400, 'The current password is not right');
   }
-  db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([hash_password($new), $u['id']]);
-  send(200, ['ok' => true]);
+  /* every other session ends; this one carries on with a fresh token */
+  db()->prepare('UPDATE users SET password_hash = ?, token_version = token_version + 1 WHERE id = ?')->execute([hash_password($new), $u['id']]);
+  db()->prepare('UPDATE password_resets SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL')->execute([$u['id']]);
+  $st = db()->prepare('SELECT * FROM users WHERE id = ?');
+  $st->execute([$u['id']]);
+  send(200, ['ok' => true, 'token' => jwt_sign($st->fetch())]);
 }
 
+/* The dashboard, built around the person asking: their mailboxes first, then
+   what their role works on. Each block goes only to those allowed to see it —
+   an agent's carries no submissions, an editor's no clients. */
 if ($method === 'GET' && $path === '/admin/overview') {
   $u = require_staff();
-  $out = ['role' => $u['role'], 'caps' => caps_of($u)];
+  $out = ['role' => $u['role'], 'caps' => caps_of($u), 'name' => $u['name'], 'email' => $u['email']];
 
-  // each block only for the people allowed to see what is in it
+  /* their mailboxes, each with its newest mail */
+  $boxes = array_values(array_filter(user_mailboxes($u), fn ($b) => $b['member']));
+  $unread = mailbox_unread(array_column($boxes, 'id'));
+  $latest = db()->prepare("SELECT id, from_email, from_name, subject, status, source, created_at FROM inbox_messages WHERE mailbox_id = ? AND direction = 'in' AND status IN ('unread','read') ORDER BY created_at DESC, id DESC LIMIT 5");
+  foreach ($boxes as &$b) {
+    $b['unread'] = $unread[$b['id']] ?? 0;
+    $latest->execute([$b['id']]);
+    $b['latest'] = array_map(fn ($r) => [
+      'id' => (int)$r['id'], 'from' => $r['from_name'] ?: $r['from_email'], 'subject' => $r['subject'],
+      'unread' => $r['status'] === 'unread', 'form' => $r['source'] === 'form', 'created_at' => iso($r['created_at']),
+    ], $latest->fetchAll());
+  }
+  unset($b);
+  $out['mailboxes'] = $boxes;
+  $out['mail_unread'] = array_sum($unread);
+  $out['mail_ready'] = ['resend' => (cfg()['RESEND_API_KEY'] ?? '') !== '' || !empty(cfg()['MAIL_DEV_OUTBOX']), 'inbound' => (cfg()['RESEND_WEBHOOK_SECRET'] ?? '') !== ''];
+
   if (can($u, 'messages')) {
     $forms = [];
     foreach (db()->query('SELECT kind, COUNT(*) AS total, SUM(is_read = 0) AS unread FROM submissions GROUP BY kind') as $r) {
@@ -584,30 +594,75 @@ if ($method === 'GET' && $path === '/admin/overview') {
     }
     $recent = [];
     foreach (db()->query('SELECT id, kind, name, created_at, is_read FROM submissions ORDER BY created_at DESC LIMIT 6') as $r) {
-      $r['id'] = (int)$r['id'];
-      $r['is_read'] = (bool)$r['is_read'];
-      $r['created_at'] = iso($r['created_at']);
-      $recent[] = $r;
+      $recent[] = ['id' => (int)$r['id'], 'kind' => $r['kind'], 'name' => $r['name'], 'is_read' => (bool)$r['is_read'], 'created_at' => iso($r['created_at'])];
     }
-    $out += [
-      'forms' => (object)$forms,
-      'recent' => $recent,
-      'inbox_unread' => (int)db()->query("SELECT COUNT(*) FROM inbox_messages WHERE direction = 'in' AND status = 'unread'")->fetchColumn(),
-      'mail_failed_7d' => (int)db()->query("SELECT COUNT(*) FROM email_log WHERE status IN ('failed','bounced','complained') AND created_at > NOW() - INTERVAL 7 DAY")->fetchColumn(),
-      'mail_ready' => ['resend' => (cfg()['RESEND_API_KEY'] ?? '') !== '', 'inbound' => (cfg()['RESEND_WEBHOOK_SECRET'] ?? '') !== ''],
-    ];
+    $out['forms'] = (object)$forms;
+    $out['recent'] = $recent;
+    $out['mail_failed_7d'] = (int)db()->query("SELECT COUNT(*) FROM email_log WHERE status IN ('failed','bounced','complained') AND created_at > NOW() - INTERVAL 7 DAY")->fetchColumn();
+    $out['mail_sent_7d'] = (int)db()->query("SELECT COUNT(*) FROM email_log WHERE created_at > NOW() - INTERVAL 7 DAY")->fetchColumn();
   }
   if (can($u, 'content')) {
     $out['content_updated'] = iso(db()->query('SELECT GREATEST(COALESCE((SELECT MAX(updated_at) FROM content), 0), COALESCE((SELECT MAX(updated_at) FROM items), 0))')->fetchColumn() ?: null);
   }
   if (can($u, 'boards')) {
-    // the boards summary counts only the clients this person can see
-    $mine = can($u, 'boards_all') ? '' : ' AND i.assignee_id = ' . (int)$u['id'];
+    /* every count is of the clients this person can see */
+    $all = can($u, 'boards_all');
     $boards = [];
-    foreach (db()->query("SELECT b.id, b.name, COUNT(i.id) AS n FROM boards b LEFT JOIN board_items i ON i.board_id = b.id AND i.archived = 0$mine GROUP BY b.id, b.name ORDER BY b.sort, b.id") as $r) {
-      $boards[] = ['id' => (int)$r['id'], 'name' => $r['name'], 'items' => (int)$r['n']];
+    foreach (db()->query('SELECT id, name, settings FROM boards ORDER BY sort, id') as $b) {
+      $settings = json_col($b['settings']) ?: [];
+      $statusCol = null;
+      $cols = db()->prepare("SELECT k, name, settings FROM board_columns WHERE board_id = ? AND type = 'status' ORDER BY k = ? DESC, sort, id LIMIT 1");
+      $cols->execute([(int)$b['id'], (string)($settings['kanban_column'] ?? '')]);
+      if ($c = $cols->fetch()) $statusCol = ['k' => $c['k'], 'name' => $c['name'], 'labels' => (json_col($c['settings']) ?: [])['labels'] ?? []];
+
+      $items = db()->prepare('SELECT vals FROM board_items WHERE board_id = ? AND archived = 0' . ($all ? '' : ' AND assignee_id = ?'));
+      $items->execute($all ? [(int)$b['id']] : [(int)$b['id'], $u['id']]);
+      $n = 0;
+      $by = [];
+      foreach ($items as $it) {
+        $n++;
+        if ($statusCol) {
+          $v = (json_col($it['vals']) ?: [])[$statusCol['k']] ?? '';
+          $by[(string)$v] = ($by[(string)$v] ?? 0) + 1;
+        }
+      }
+      $breakdown = [];
+      if ($statusCol) {
+        foreach ($statusCol['labels'] as $l) {
+          if (!empty($by[$l['name']])) $breakdown[] = ['label' => $l['name'], 'color' => $l['color'], 'n' => $by[$l['name']], 'done' => !empty($l['done'])];
+        }
+        if (!empty($by[''])) $breakdown[] = ['label' => 'No status', 'color' => '#c4c4c4', 'n' => $by[''], 'done' => false];
+      }
+      $boards[] = ['id' => (int)$b['id'], 'name' => $b['name'], 'items' => $n, 'status' => $statusCol ? $statusCol['name'] : null, 'breakdown' => $breakdown];
     }
     $out['boards'] = $boards;
+
+    /* the clients assigned to them, most recently touched first */
+    $mine = [];
+    $st = db()->prepare('SELECT i.id, i.name, i.board_id, i.vals, i.updated_at, b.name AS board, b.settings FROM board_items i JOIN boards b ON b.id = i.board_id WHERE i.assignee_id = ? AND i.archived = 0 ORDER BY i.updated_at DESC LIMIT 40');
+    $st->execute([$u['id']]);
+    $labelsFor = [];
+    foreach ($st as $r) {
+      $bid = (int)$r['board_id'];
+      if (!array_key_exists($bid, $labelsFor)) {
+        $settings = json_col($r['settings']) ?: [];
+        $c = db()->prepare("SELECT k, settings FROM board_columns WHERE board_id = ? AND type = 'status' ORDER BY k = ? DESC, sort, id LIMIT 1");
+        $c->execute([$bid, (string)($settings['kanban_column'] ?? '')]);
+        $col = $c->fetch();
+        $labelsFor[$bid] = $col ? ['k' => $col['k'], 'labels' => (json_col($col['settings']) ?: [])['labels'] ?? []] : null;
+      }
+      $status = null;
+      if ($labelsFor[$bid]) {
+        $v = (json_col($r['vals']) ?: [])[$labelsFor[$bid]['k']] ?? null;
+        foreach ($labelsFor[$bid]['labels'] as $l) if ($l['name'] === $v) $status = ['label' => $l['name'], 'color' => $l['color'], 'done' => !empty($l['done'])];
+      }
+      $mine[] = ['id' => (int)$r['id'], 'name' => $r['name'], 'board_id' => $bid, 'board' => $r['board'], 'status' => $status, 'updated_at' => iso($r['updated_at'])];
+    }
+    $out['my_items'] = $mine;
+  }
+  if (can($u, 'team')) {
+    $t = db()->query("SELECT COUNT(*) AS n, SUM(is_disabled = 0 AND last_login_at > NOW() - INTERVAL 14 DAY) AS active, SUM(is_disabled = 0 AND last_login_at IS NULL) AS never FROM users")->fetch();
+    $out['team'] = ['people' => (int)$t['n'], 'active' => (int)$t['active'], 'never' => (int)$t['never']];
   }
   send(200, $out);
 }
@@ -765,21 +820,48 @@ if ($method === 'DELETE' && preg_match('#^/admin/upload/([^/]+)$#', $path, $m)) 
 
 /* ---------- form submissions ---------- */
 
+function present_submission(array $r): array {
+  $r['id'] = (int)$r['id'];
+  $r['is_read'] = (bool)$r['is_read'];
+  $r['extra'] = json_col($r['extra']) ?: (object)[];
+  $r['created_at'] = iso($r['created_at']);
+  return $r;
+}
+
+/* a page of submissions: by form, by a search across who sent it and what
+   they wrote, newest first — with the unread counts for the tabs */
 if ($method === 'GET' && $path === '/admin/submissions') {
   require_cap('messages');
   $kind = isset(FORMS[$_GET['kind'] ?? '']) ? $_GET['kind'] : null;
-  $st = db()->prepare('SELECT id, kind, name, email, phone, message, extra, is_read, created_at FROM submissions '
-    . ($kind ? 'WHERE kind = ? ' : '') . 'ORDER BY created_at DESC LIMIT 1000');
-  $st->execute($kind ? [$kind] : []);
-  $rows = [];
-  foreach ($st as $r) {
-    $r['id'] = (int)$r['id'];
-    $r['is_read'] = (bool)$r['is_read'];
-    $r['extra'] = json_col($r['extra']) ?: (object)[];
-    $r['created_at'] = iso($r['created_at']);
-    $rows[] = $r;
+  $q = trim((string)($_GET['q'] ?? ''));
+  $limit = max(1, min(1000, (int)($_GET['limit'] ?? 50)));
+  $offset = max(0, (int)($_GET['offset'] ?? 0));
+  $where = [];
+  $args = [];
+  if ($kind) { $where[] = 'kind = ?'; $args[] = $kind; }
+  if ($q !== '') {
+    $like = '%' . addcslashes(mb_substr($q, 0, 100), '%_\\') . '%';
+    $where[] = '(name LIKE ? OR email LIKE ? OR phone LIKE ? OR message LIKE ? OR extra LIKE ?)';
+    array_push($args, $like, $like, $like, $like, $like);
   }
-  send(200, $rows);
+  $sqlWhere = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+  $st = db()->prepare("SELECT id, kind, name, email, phone, message, extra, is_read, created_at FROM submissions $sqlWhere ORDER BY created_at DESC, id DESC LIMIT $limit OFFSET $offset");
+  $st->execute($args);
+  $rows = array_map('present_submission', $st->fetchAll());
+  $n = db()->prepare("SELECT COUNT(*) FROM submissions $sqlWhere");
+  $n->execute($args);
+  $unread = [];
+  foreach (db()->query('SELECT kind, SUM(is_read = 0) AS n FROM submissions GROUP BY kind') as $r) $unread[$r['kind']] = (int)$r['n'];
+  send(200, ['rows' => $rows, 'total' => (int)$n->fetchColumn(), 'unread' => (object)$unread]);
+}
+
+if (preg_match('#^/admin/submissions/(\d+)$#', $path, $m) && $method === 'GET') {
+  require_cap('messages');
+  $st = db()->prepare('SELECT id, kind, name, email, phone, message, extra, is_read, created_at FROM submissions WHERE id = ?');
+  $st->execute([(int)$m[1]]);
+  $row = $st->fetch();
+  if (!$row) fail(404, 'That submission is gone');
+  send(200, present_submission($row));
 }
 
 if (preg_match('#^/admin/submissions/(\d+)$#', $path, $m) && in_array($method, ['PUT', 'DELETE'], true)) {
@@ -837,222 +919,106 @@ if ($method === 'GET' && preg_match('#^/admin/submissions/(\d+)/cv$#', $path, $m
   exit;
 }
 
-/* ---------- the office mailbox ---------- */
-
-if ($method === 'GET' && $path === '/admin/inbox') {
-  require_cap('messages');
-  $where = match ($_GET['box'] ?? 'inbox') {
-    'archived' => "direction = 'in' AND status = 'archived'",
-    'sent' => "direction = 'out' AND status != 'deleted'",
-    default => "direction = 'in' AND status IN ('unread','read')",
-  };
-  $rows = [];
-  foreach (db()->query("SELECT id, thread_key, direction, from_email, from_name, to_email, subject, LEFT(text_body, 200) AS preview, attachments, status, created_at FROM inbox_messages WHERE $where ORDER BY created_at DESC LIMIT 300") as $r) {
-    $r['id'] = (int)$r['id'];
-    $r['attachments'] = $r['attachments'] ? count(json_col($r['attachments']) ?: []) : 0;
-    $r['created_at'] = iso($r['created_at']);
-    $rows[] = $r;
-  }
-  send(200, [
-    'messages' => $rows,
-    'unread' => (int)db()->query("SELECT COUNT(*) FROM inbox_messages WHERE direction = 'in' AND status = 'unread'")->fetchColumn(),
-  ]);
-}
-
-if (preg_match('#^/admin/inbox/(\d+)$#', $path, $m) && $method === 'GET') {
-  require_cap('messages');
-  $st = db()->prepare('SELECT * FROM inbox_messages WHERE id = ?');
-  $st->execute([(int)$m[1]]);
-  $msg = $st->fetch();
-  if (!$msg) fail(404, 'Not found');
-  if ($msg['status'] === 'unread') {
-    db()->prepare("UPDATE inbox_messages SET status = 'read' WHERE id = ?")->execute([(int)$m[1]]);
-    $msg['status'] = 'read';
-  }
-  $msg['id'] = (int)$msg['id'];
-  $msg['attachments'] = json_col($msg['attachments']) ?: [];
-  $msg['created_at'] = iso($msg['created_at']);
-  unset($msg['html_body']); // the panel shows the plain-text part: no remote images, no tracking pixels
-
-  $th = db()->prepare("SELECT id, direction, from_email, from_name, subject, text_body, created_at FROM inbox_messages WHERE thread_key = ? AND status != 'deleted' ORDER BY created_at");
-  $th->execute([$msg['thread_key']]);
-  $thread = [];
-  foreach ($th as $t) { $t['id'] = (int)$t['id']; $t['created_at'] = iso($t['created_at']); $thread[] = $t; }
-  send(200, ['message' => $msg, 'thread' => $thread]);
-}
-
-if (preg_match('#^/admin/inbox/(\d+)/status$#', $path, $m) && $method === 'PUT') {
-  require_cap('messages');
-  $status = body_json()['status'] ?? '';
-  if (!in_array($status, ['unread', 'read', 'archived', 'deleted'], true)) fail(400, 'Bad status');
-  db()->prepare('UPDATE inbox_messages SET status = ? WHERE id = ?')->execute([$status, (int)$m[1]]);
-  send(200, ['ok' => true]);
-}
-
-if (preg_match('#^/admin/inbox/(\d+)/attachment/([0-9a-f]{16})$#', $path, $m) && $method === 'GET') {
-  require_cap('messages');
-  $st = db()->prepare('SELECT attachments FROM inbox_messages WHERE id = ?');
-  $st->execute([(int)$m[1]]);
-  foreach (json_col($st->fetchColumn() ?: '') ?: [] as $a) {
-    if (($a['id'] ?? '') !== $m[2]) continue;
-    $file = mail_attachment_dir() . '/' . basename((string)$a['stored']);
-    if (!is_file($file)) fail(404, 'That file is gone');
-    header('Content-Type: ' . ($a['content_type'] ?: 'application/octet-stream'));
-    header('Content-Disposition: attachment; filename="' . str_replace('"', '', (string)$a['filename']) . '"');
-    header('Content-Length: ' . filesize($file));
-    header('X-Content-Type-Options: nosniff');
-    readfile($file);
-    exit;
-  }
-  fail(404, 'Not found');
-}
-
-/* a file staged for an outgoing message; compose and reply reference it by id */
-if ($method === 'POST' && $path === '/admin/inbox/attachment') {
-  require_cap('messages');
-  $f = $_FILES['file'] ?? null;
-  if (!$f || $f['error'] === UPLOAD_ERR_NO_FILE) fail(400, 'No file received');
-  if ($f['error'] !== UPLOAD_ERR_OK) fail(400, 'Upload failed — please try a smaller file');
-  if ($f['size'] > 8 * 1024 * 1024) fail(400, 'That file is larger than 8 MB');
-  $mime = (new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']) ?: 'application/octet-stream';
-  if (preg_match('/(x-msdownload|x-msdos-program|x-sh|x-executable|javascript|php)/i', $mime)) {
-    fail(400, 'That kind of file cannot be sent by email');
-  }
-  $id = bin2hex(random_bytes(8));
-  $safe = preg_replace('/[^A-Za-z0-9._ -]/', '_', basename((string)$f['name'])) ?: 'attachment';
-  $stored = $id . '_' . mb_substr($safe, 0, 120);
-  if (!move_uploaded_file($f['tmp_name'], mail_attachment_dir() . '/' . $stored)) fail(500, 'Could not store the file');
-  send(201, ['id' => $id, 'filename' => $safe, 'size' => (int)$f['size'], 'content_type' => $mime, 'stored' => $stored]);
-}
-
-/* what the panel sent → [files for the mailer, metadata for the Sent copy] */
-function outbound_attachments($list): array {
-  $files = [];
-  $meta = [];
-  foreach (is_array($list) ? $list : [] as $a) {
-    if (!preg_match('/^[0-9a-f]{16}$/', (string)($a['id'] ?? ''))) continue;
-    $file = mail_attachment_dir() . '/' . basename((string)($a['stored'] ?? ''));
-    if (!is_file($file) || !str_starts_with(basename($file), $a['id'] . '_')) continue;
-    $name = (string)($a['filename'] ?? basename($file));
-    $files[] = ['path' => $file, 'filename' => $name];
-    $meta[] = [
-      'id' => $a['id'], 'filename' => $name, 'size' => (int)filesize($file),
-      'content_type' => (string)($a['content_type'] ?? 'application/octet-stream'),
-      'stored' => basename($file),
-    ];
-  }
-  return [$files, $meta];
-}
-
-if (preg_match('#^/admin/inbox/(\d+)/reply$#', $path, $m) && $method === 'POST') {
-  $u = require_cap('messages');
-  $b = body_json();
-  $text = trim((string)($b['text'] ?? ''));
-  if ($text === '') fail(400, 'Write something first');
-  $st = db()->prepare('SELECT * FROM inbox_messages WHERE id = ?');
-  $st->execute([(int)$m[1]]);
-  $orig = $st->fetch();
-  if (!$orig) fail(404, 'Not found');
-
-  $subject = preg_match('/^\s*re\s*:/i', (string)$orig['subject']) ? $orig['subject'] : 'Re: ' . $orig['subject'];
-  $ref = (string)($orig['message_id'] ?? '');
-  /* real threading in the recipient's mail client */
-  $opts = $ref !== '' && str_contains($ref, '@') ? ['headers' => ['In-Reply-To' => "<$ref>", 'References' => "<$ref>"]] : [];
-  [$files, $attMeta] = outbound_attachments($b['attachments'] ?? []);
-  if ($files) $opts['attachments'] = $files;
-  send_mail((string)$orig['from_email'], $subject, $text, cfg()['NOTIFY_EMAIL'] ?? '', $opts);
-
-  db()->prepare('INSERT INTO inbox_messages (thread_key, direction, from_email, from_name, to_email, subject, text_body, attachments, in_reply_to, status) VALUES (?,?,?,?,?,?,?,?,?,?)')
-    ->execute([
-      $orig['thread_key'], 'out', mail_from()[0], $u['name'] ?: $u['email'],
-      (string)$orig['from_email'], mb_substr($subject, 0, 255), $text,
-      $attMeta ? json_encode($attMeta, JSON_UNESCAPED_UNICODE) : null,
-      $ref ?: null, 'read',
-    ]);
-  db()->prepare("UPDATE inbox_messages SET status = 'read' WHERE id = ? AND status = 'unread'")->execute([(int)$m[1]]);
-  send(200, ['ok' => true]);
-}
-
-/* a new message — also how a form submission is answered from the admin */
-if ($method === 'POST' && $path === '/admin/inbox/compose') {
-  $u = require_cap('messages');
-  $b = body_json();
-  $to = strtolower(trim((string)($b['to'] ?? '')));
-  $subject = trim((string)($b['subject'] ?? ''));
-  $text = trim((string)($b['text'] ?? ''));
-  if (!valid_email($to)) fail(400, 'A valid recipient is required');
-  if ($subject === '' || $text === '') fail(400, 'A subject and a message are required');
-  [$files, $attMeta] = outbound_attachments($b['attachments'] ?? []);
-  send_mail($to, $subject, $text, cfg()['NOTIFY_EMAIL'] ?? '', $files ? ['attachments' => $files] : []);
-  db()->prepare('INSERT INTO inbox_messages (thread_key, direction, from_email, from_name, to_email, subject, text_body, attachments, status) VALUES (?,?,?,?,?,?,?,?,?)')
-    ->execute([
-      thread_key($subject), 'out', mail_from()[0], $u['name'] ?: $u['email'], $to,
-      mb_substr($subject, 0, 255), $text,
-      $attMeta ? json_encode($attMeta, JSON_UNESCAPED_UNICODE) : null, 'read',
-    ]);
-  if (!empty($b['submission_id'])) {
-    db()->prepare('UPDATE submissions SET is_read = 1 WHERE id = ?')->execute([(int)$b['submission_id']]);
-  }
-  send(200, ['ok' => true]);
-}
-
 /* ---------- the email log ---------- */
 
 if ($method === 'GET' && $path === '/admin/emails') {
   require_cap('messages');
+  $limit = max(1, min(500, (int)($_GET['limit'] ?? 100)));
+  $offset = max(0, (int)($_GET['offset'] ?? 0));
+  $where = [];
+  $args = [];
+  $q = trim((string)($_GET['q'] ?? ''));
+  if ($q !== '') {
+    $like = '%' . addcslashes(mb_substr($q, 0, 100), '%_\\') . '%';
+    $where[] = '(to_email LIKE ? OR subject LIKE ?)';
+    array_push($args, $like, $like);
+  }
+  if (($_GET['status'] ?? '') === 'problems') $where[] = "status IN ('failed','bounced','complained','delayed')";
+  $sqlWhere = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+  $st = db()->prepare("SELECT id, to_email, subject, provider, status, error, created_at, updated_at FROM email_log $sqlWhere ORDER BY created_at DESC, id DESC LIMIT $limit OFFSET $offset");
+  $st->execute($args);
   $rows = [];
-  foreach (db()->query('SELECT id, to_email, subject, provider, status, error, created_at, updated_at FROM email_log ORDER BY created_at DESC LIMIT 300') as $r) {
+  foreach ($st as $r) {
     $r['id'] = (int)$r['id'];
     $r['created_at'] = iso($r['created_at']);
     $r['updated_at'] = iso($r['updated_at']);
     $rows[] = $r;
   }
-  send(200, $rows);
+  $n = db()->prepare("SELECT COUNT(*) FROM email_log $sqlWhere");
+  $n->execute($args);
+  send(200, ['rows' => $rows, 'total' => (int)$n->fetchColumn()]);
 }
 
 if ($method === 'POST' && $path === '/admin/emails/test') {
   $u = require_cap('messages');
   rate_limit('mailtest', 300, 10);
   $to = strtolower(trim((string)(body_json()['to'] ?? '')));
-  if (!valid_email($to)) $to = $u['email'];
-  send_mail($to, 'Skyline test email', "This is a test from the Skyline website admin.\n\nIf you are reading it, outgoing mail works.", cfg()['NOTIFY_EMAIL'] ?? '');
-  $row = db()->query('SELECT provider, status, error FROM email_log ORDER BY id DESC LIMIT 1')->fetch();
-  send(200, array_merge(['ok' => true, 'to' => $to], $row ?: []));
+  if (!valid_email($to)) {
+    $st = db()->prepare('SELECT recovery_email FROM users WHERE id = ?');
+    $st->execute([$u['id']]);
+    $to = (string)($st->fetchColumn() ?: $u['email']);
+  }
+  $r = send_mail($to, 'Skyline test email', "This is a test from the Skyline office admin.\n\nIf you are reading it, outgoing mail works.", notify_address());
+  send(200, ['ok' => true, 'to' => $to, 'provider' => 'resend', 'status' => $r['sent'] ? 'sent' : 'failed', 'error' => $r['error']]);
 }
 
 /* ============================================================
    ADMIN ONLY — the team
    ============================================================ */
 
+/* a private address for sign-in links: required, and never one of ours */
+function recovery_from($raw, bool $required): ?string {
+  $r = strtolower(clean($raw ?? '', 190));
+  if ($r === '') {
+    if ($required) fail(400, 'Add their private email — the link to choose a password goes there');
+    return null;
+  }
+  if (!valid_email($r)) fail(400, 'That private email does not look right');
+  if (own_address($r)) fail(400, 'The private email must be outside @' . mail_domain() . ' — it is how they get back in when they cannot sign in');
+  return $r;
+}
+
+function address_taken(string $address, int $exceptUser = 0): bool {
+  $st = db()->prepare('SELECT COUNT(*) FROM users WHERE email = ? AND id != ?');
+  $st->execute([$address, $exceptUser]);
+  if ((int)$st->fetchColumn()) return true;
+  $box = mailbox_by_address($address);
+  return $box && !($box['kind'] === 'personal' && $box['owner_id'] === $exceptUser);
+}
+
 if ($method === 'GET' && $path === '/admin/users') {
   require_admin();
   $rows = [];
-  foreach (db()->query('SELECT id, email, name, role, is_disabled, created_at, last_login_at FROM users ORDER BY created_at') as $r) {
+  foreach (db()->query('SELECT id, email, recovery_email, name, role, is_disabled, created_at, last_login_at FROM users ORDER BY created_at') as $r) {
     $r['id'] = (int)$r['id'];
     $r['is_disabled'] = (bool)$r['is_disabled'];
+    $r['own_address'] = own_address((string)$r['email']);
     $r['created_at'] = iso($r['created_at']);
     $r['last_login_at'] = iso($r['last_login_at']);
     $rows[] = $r;
   }
-  send(200, $rows);
+  send(200, ['users' => $rows, 'domain' => mail_domain()]);
 }
 
+/* A new colleague: their address at the office's domain (their sign-in and
+   their own mailbox), and a private one for the link to choose a password —
+   no password is ever emailed. */
 if ($method === 'POST' && $path === '/admin/users') {
   require_admin();
   $b = body_json();
-  $email = strtolower(clean($b['email'] ?? '', 190));
+  $email = own_address_from((string)($b['address'] ?? $b['email'] ?? ''));
+  if ($email === '') fail(400, 'Choose their address at @' . mail_domain() . ' — letters, numbers, dots and dashes');
+  if (address_taken($email)) fail(409, "$email is already in use");
   $name = clean($b['name'] ?? '', 120);
-  $role = in_array($b['role'] ?? '', ROLES, true) ? $b['role'] : 'editor';
-  if (!valid_email($email)) fail(400, 'A valid email address is required');
-  $st = db()->prepare('SELECT id FROM users WHERE email = ?');
-  $st->execute([$email]);
-  if ($st->fetch()) fail(409, 'Someone with that email already has an account');
-  /* no password is ever emailed: they choose one through a one-time link */
-  db()->prepare('INSERT INTO users (email, name, password_hash, role) VALUES (?,?,?,?)')
-    ->execute([$email, $name ?: null, hash_password(bin2hex(random_bytes(24))), $role]);
+  if ($name === '') fail(400, 'Their name is required');
+  $role = in_array($b['role'] ?? '', ROLES, true) ? $b['role'] : 'agent';
+  $recovery = recovery_from($b['recovery_email'] ?? '', true);
+  db()->prepare('INSERT INTO users (email, recovery_email, name, password_hash, role) VALUES (?,?,?,?,?)')
+    ->execute([$email, $recovery, $name, hash_password(bin2hex(random_bytes(24))), $role]);
   $id = (int)db()->lastInsertId();
-  send_reset_link(['id' => $id, 'email' => $email, 'name' => $name], 72 * 3600, true);
-  send(201, ['id' => $id]);
+  ensure_personal_mailbox($id);
+  $sent = send_reset_link(['id' => $id, 'email' => $email, 'recovery_email' => $recovery, 'name' => $name], 72 * 3600, true);
+  send(201, ['id' => $id, 'email' => $email, 'invited' => $sent]);
 }
 
 if (preg_match('#^/admin/users/(\d+)$#', $path, $m) && $method === 'PUT') {
@@ -1066,26 +1032,53 @@ if (preg_match('#^/admin/users/(\d+)$#', $path, $m) && $method === 'PUT') {
   $role = array_key_exists('role', $b) && in_array($b['role'], ROLES, true) ? $b['role'] : $user['role'];
   $disabled = array_key_exists('is_disabled', $b) ? (bool)$b['is_disabled'] : (bool)$user['is_disabled'];
   $name = array_key_exists('name', $b) ? clean($b['name'], 120) : $user['name'];
+  $recovery = array_key_exists('recovery_email', $b) ? recovery_from($b['recovery_email'], false) : $user['recovery_email'];
   if ($id === $me['id'] && ($disabled || $role !== 'admin')) fail(400, 'You cannot lock yourself out — ask another admin');
   /* the team must always keep one working admin */
   if ($user['role'] === 'admin' && ($role !== 'admin' || $disabled)) {
     $n = (int)db()->query("SELECT COUNT(*) FROM users WHERE role = 'admin' AND is_disabled = 0")->fetchColumn();
     if ($n <= 1) fail(400, 'This is the only admin — make someone else an admin first');
   }
-  db()->prepare('UPDATE users SET role = ?, is_disabled = ?, name = ? WHERE id = ?')
-    ->execute([$role, $disabled ? 1 : 0, $name ?: null, $id]);
-  send(200, ['ok' => true]);
+
+  /* a new sign-in address takes their own mailbox with it; an old private
+     one becomes their reset address, so they are never left without one */
+  $email = $user['email'];
+  if (array_key_exists('address', $b)) {
+    $new = own_address_from((string)$b['address']);
+    if ($new === '') fail(400, 'Choose an address at @' . mail_domain());
+    if ($new !== $email) {
+      if (address_taken($new, $id)) fail(409, "$new is already in use");
+      $box = mailbox_by_address($email);
+      if ($box && $box['kind'] === 'personal' && $box['owner_id'] === $id) {
+        db()->prepare('UPDATE mailboxes SET address = ? WHERE id = ?')->execute([$new, $box['id']]);
+      }
+      if (!own_address($email) && !$recovery) $recovery = $email;
+      $email = $new;
+    }
+  }
+  if ($name && $name !== $user['name']) {
+    db()->prepare("UPDATE mailboxes SET name = ? WHERE kind = 'personal' AND owner_id = ? AND name = ?")->execute([$name, $id, (string)$user['name']]);
+  }
+  db()->prepare('UPDATE users SET email = ?, recovery_email = ?, role = ?, is_disabled = ?, name = ? WHERE id = ?')
+    ->execute([$email, $recovery, $role, $disabled ? 1 : 0, $name ?: null, $id]);
+  if ($disabled) db()->prepare('UPDATE password_resets SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL')->execute([$id]);
+  ensure_personal_mailbox($id);
+  send(200, ['ok' => true, 'email' => $email]);
 }
 
 if (preg_match('#^/admin/users/(\d+)/invite$#', $path, $m) && $method === 'POST') {
   require_admin();
-  $st = db()->prepare('SELECT id, email, name FROM users WHERE id = ? AND is_disabled = 0');
+  $st = db()->prepare('SELECT id, email, recovery_email, name FROM users WHERE id = ? AND is_disabled = 0');
   $st->execute([(int)$m[1]]);
   $user = $st->fetch();
   if (!$user) fail(404, 'Not found');
-  send_reset_link($user, 72 * 3600, true);
-  send(200, ['ok' => true]);
+  if (reset_destination($user) === '') fail(400, 'Add their private email first — the link cannot go to a mailbox inside the admin');
+  if (!send_reset_link($user, 72 * 3600, true)) fail(502, 'The email could not be sent — see the email log');
+  send(200, ['ok' => true, 'to' => reset_destination($user)]);
 }
+
+/* the office's mailboxes: reading, sending, setting them up */
+require __DIR__ . '/mailbox.php';
 
 /* the work boards: clients, applications, pre-enrolment */
 require __DIR__ . '/boards.php';

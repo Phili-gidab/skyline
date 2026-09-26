@@ -14,7 +14,9 @@ return [
   'JWT_SECRET' => 'dev-only-secret-never-used-in-production-0123456789abcdef',
   'SITE_ORIGIN' => 'http://localhost:8080,http://localhost:5173',
 
-  // no Resend locally: mail goes through SMTP to Mailpit (http://localhost:8025)
+  // no Resend locally: every outgoing message is written to the private
+  // volume as JSON instead (docker exec skyline-dev-php-1 ls /var/www/private/dev-outbox)
+  'MAIL_DEV_OUTBOX' => true,
   'RESEND_API_KEY' => '',
   // base64 of "local-webhook-secret" — lets tests sign fake Resend events
   'RESEND_WEBHOOK_SECRET' => 'whsec_bG9jYWwtd2ViaG9vay1zZWNyZXQ=',

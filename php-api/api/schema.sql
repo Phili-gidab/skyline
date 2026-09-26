@@ -1,14 +1,19 @@
 -- Skyline CMS schema. MySQL 5.7+ / 8.x, or MariaDB 10.2+ (cPanel).
 -- Every statement is idempotent: run it again after an upgrade.
 
--- Staff accounts. admin = everything, including the team; editor = content, forms and mail.
+-- Staff accounts. `email` is the sign-in address — their own at the office's
+-- domain, which is also their mailbox; `recovery_email` is a private one for
+-- password links. Roles and what each may do: CAPS in lib.php.
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   email VARCHAR(190) NOT NULL UNIQUE,
+  recovery_email VARCHAR(190) NULL,
   name VARCHAR(120) NULL,
+  signature TEXT NULL,
   password_hash VARCHAR(100) NOT NULL,
   role VARCHAR(20) NOT NULL DEFAULT 'editor',
   is_disabled TINYINT(1) NOT NULL DEFAULT 0,
+  token_version INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_login_at TIMESTAMP NULL
 );
@@ -75,27 +80,37 @@ CREATE TABLE IF NOT EXISTS email_log (
   INDEX idx_provider_id (provider_id)
 );
 
--- The office mailbox: what arrived through Resend and what staff sent back.
+-- Every mailbox's mail: what arrived through Resend, form notices filed
+-- in-house, and what staff sent. One row per mailbox a message is in.
 CREATE TABLE IF NOT EXISTS inbox_messages (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  mailbox_id INT NULL,
   resend_id VARCHAR(120) NULL,
   message_id VARCHAR(190) NULL,
   thread_key VARCHAR(40) NOT NULL,
   direction ENUM('in','out') NOT NULL DEFAULT 'in',
   from_email VARCHAR(190) NOT NULL,
   from_name VARCHAR(190) NULL,
-  to_email VARCHAR(190) NULL,
-  cc_email VARCHAR(190) NULL,
+  to_email VARCHAR(500) NULL,
+  cc_email VARCHAR(500) NULL,
+  reply_to VARCHAR(190) NULL,
   subject VARCHAR(255) NOT NULL,
   text_body MEDIUMTEXT NULL,
   html_body MEDIUMTEXT NULL,
   attachments JSON NULL,
   in_reply_to VARCHAR(190) NULL,
-  status ENUM('unread','read','archived','deleted') NOT NULL DEFAULT 'unread',
+  auth VARCHAR(80) NULL,
+  source VARCHAR(20) NULL,
+  submission_id INT NULL,
+  delivery VARCHAR(20) NULL,
+  sent_by INT NULL,
+  status ENUM('unread','read','archived','deleted','spam') NOT NULL DEFAULT 'unread',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uniq_message (message_id),
-  INDEX idx_box (direction, status, created_at),
-  INDEX idx_thread (thread_key, created_at)
+  UNIQUE KEY uniq_box_resend (mailbox_id, resend_id),
+  INDEX idx_mailbox (mailbox_id, direction, status, created_at),
+  INDEX idx_thread (thread_key, created_at),
+  INDEX idx_message (message_id),
+  INDEX idx_resend (resend_id)
 );
 
 -- ------------------------------------------------------------------
@@ -182,3 +197,36 @@ CREATE TABLE IF NOT EXISTS item_activity (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_item (item_id, created_at)
 );
+
+-- ------------------------------------------------------------------
+-- Mailboxes: every address at the office's domain that someone reads. A
+-- personal box is one person's (their sign-in address); a shared one
+-- (info@, applications@) is read by the roles it lists and by anyone named
+-- in mailbox_members. Mail for an address with no box goes to the catch-all;
+-- the `website` box sends the forms' confirmations and files their notices.
+CREATE TABLE IF NOT EXISTS mailboxes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  address VARCHAR(190) NOT NULL UNIQUE,
+  name VARCHAR(120) NOT NULL,
+  kind ENUM('personal','shared') NOT NULL DEFAULT 'shared',
+  owner_id INT NULL,
+  roles JSON NULL,
+  catch_all TINYINT(1) NOT NULL DEFAULT 0,
+  website TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_owner (owner_id)
+);
+
+CREATE TABLE IF NOT EXISTS mailbox_members (
+  mailbox_id INT NOT NULL,
+  user_id INT NOT NULL,
+  PRIMARY KEY (mailbox_id, user_id),
+  INDEX idx_user (user_id)
+);
+
+-- Existing installs: room for several recipients, and a spam folder.
+-- (New columns and indexes are added by setup.php, which checks first.)
+ALTER TABLE inbox_messages MODIFY to_email VARCHAR(500) NULL;
+ALTER TABLE inbox_messages MODIFY cc_email VARCHAR(500) NULL;
+ALTER TABLE inbox_messages MODIFY status ENUM('unread','read','archived','deleted','spam') NOT NULL DEFAULT 'unread';
+ALTER TABLE email_log MODIFY to_email VARCHAR(500) NOT NULL;

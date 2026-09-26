@@ -12,6 +12,11 @@
 
 declare(strict_types=1);
 
+/* Times are UTC end to end — the database session is set to match in
+   connect_db() — and each browser shows them in its own zone. Left to the
+   host's defaults, MySQL and PHP disagreed by an hour. */
+date_default_timezone_set('UTC');
+
 function cfg(): array {
   static $cfg = null;
   if ($cfg !== null) return $cfg;
@@ -41,11 +46,13 @@ function db(): PDO {
 function connect_db(array $c): PDO {
   $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
     $c['DB_HOST'] ?? '127.0.0.1', (int)($c['DB_PORT'] ?? 3306), $c['DB_NAME']);
-  return new PDO($dsn, $c['DB_USER'], $c['DB_PASSWORD'], [
+  $pdo = new PDO($dsn, $c['DB_USER'], $c['DB_PASSWORD'], [
     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     PDO::ATTR_EMULATE_PREPARES => false, // native types: INT columns come back as ints
   ]);
+  $pdo->exec("SET time_zone = '+00:00'");
+  return $pdo;
 }
 
 /* ---------- responses ---------- */
@@ -88,24 +95,36 @@ function valid_key(string $k): bool { return (bool)preg_match('/^[a-z][a-z0-9_-]
 function b64url_encode(string $s): string { return rtrim(strtr(base64_encode($s), '+/', '-_'), '='); }
 function b64url_decode(string $s): string|false { return base64_decode(strtr($s, '-_', '+/')); }
 
+/* The signing secret. A short or example one would let anyone mint an admin
+   session, so the API refuses to sign or accept tokens with it at all. */
+function jwt_secret(): string {
+  $s = (string)(cfg()['JWT_SECRET'] ?? '');
+  if (strlen($s) < 32 || stripos($s, 'change-me') !== false) {
+    error_log('Skyline API: JWT_SECRET is missing, too short or the example value — sessions are refused');
+    fail(500, 'The server is not configured securely — contact the administrator');
+  }
+  return $s;
+}
+
+/* `tv` is the account's token version: changing or resetting the password
+   moves it on, which ends every session signed before. */
 function jwt_sign(array $user): string {
-  $c = cfg();
   $header = b64url_encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT']));
   $now = time();
   $payload = b64url_encode(json_encode([
     'sub' => (int)$user['id'], 'email' => $user['email'], 'role' => $user['role'],
+    'tv' => (int)($user['token_version'] ?? 0),
     'iat' => $now, 'exp' => $now + 12 * 3600,
   ]));
-  $sig = b64url_encode(hash_hmac('sha256', "$header.$payload", $c['JWT_SECRET'], true));
+  $sig = b64url_encode(hash_hmac('sha256', "$header.$payload", jwt_secret(), true));
   return "$header.$payload.$sig";
 }
 
 function jwt_verify(string $token): ?array {
-  $c = cfg();
   $parts = explode('.', $token);
   if (count($parts) !== 3) return null;
   [$header, $payload, $sig] = $parts;
-  $expected = b64url_encode(hash_hmac('sha256', "$header.$payload", $c['JWT_SECRET'], true));
+  $expected = b64url_encode(hash_hmac('sha256', "$header.$payload", jwt_secret(), true));
   if (!hash_equals($expected, $sig)) return null;
   $data = json_decode(b64url_decode($payload) ?: '', true);
   if (!is_array($data) || !isset($data['exp']) || $data['exp'] < time()) return null;
@@ -157,12 +176,13 @@ function require_staff(): array {
   if (!$token) fail(401, 'Not signed in');
   $payload = jwt_verify($token);
   if (!$payload) fail(401, 'Session expired — sign in again');
-  $st = db()->prepare('SELECT id, email, name, role, is_disabled FROM users WHERE id = ?');
+  $st = db()->prepare('SELECT id, email, name, role, is_disabled, token_version FROM users WHERE id = ?');
   $st->execute([(int)$payload['sub']]);
   $user = $st->fetch();
   if (!$user || (int)$user['is_disabled'] === 1 || !in_array($user['role'], ROLES, true)) {
     fail(401, 'This account can no longer sign in');
   }
+  if ((int)($payload['tv'] ?? 0) !== (int)$user['token_version']) fail(401, 'Your password was changed — sign in again');
   $user['id'] = (int)$user['id'];
   return $user;
 }
@@ -214,20 +234,51 @@ function private_dir(string $sub = ''): string {
   return $dir;
 }
 
-function rate_limit(string $bucket, int $windowSec, int $max): void {
-  $ip = $_SERVER['REMOTE_ADDR'] ?? '0';
-  $file = private_dir('rate') . '/' . md5("$ip:$bucket") . '.json';
+/* A fixed-window counter in a small file. By default per client IP; `$who`
+   counts something else instead — one account, one staff member — so an
+   office sharing one internet connection does not share one allowance. */
+function rate_file(string $bucket, string $who): ?string {
+  $dir = private_dir('rate');
+  if (!is_dir($dir) || !is_writable($dir)) {
+    error_log('Skyline API: rate-limit storage is not writable — limits are not being enforced');
+    return null;
+  }
+  return $dir . '/' . md5("$who:$bucket") . '.json';
+}
+
+function rate_count(string $bucket, int $windowSec, string $who, bool $add): int {
+  $file = rate_file($bucket, $who);
+  if (!$file) return 0; // storage unavailable: let the request through rather than lock everyone out
   $fh = @fopen($file, 'c+');
-  if (!$fh) return; // limiter storage unavailable: let the request through rather than lock everyone out
+  if (!$fh) return 0;
   flock($fh, LOCK_EX);
   $entry = json_decode(stream_get_contents($fh) ?: '', true) ?: null;
   $now = time();
-  if (!$entry || $now - $entry['start'] > $windowSec) $entry = ['start' => $now, 'count' => 1];
-  else $entry['count']++;
-  ftruncate($fh, 0); rewind($fh);
-  fwrite($fh, json_encode($entry));
-  flock($fh, LOCK_UN); fclose($fh);
-  if ($entry['count'] > $max) fail(429, 'Too many requests — try again shortly');
+  if (!$entry || $now - $entry['start'] > $windowSec) $entry = ['start' => $now, 'count' => 0];
+  if ($add) {
+    $entry['count']++;
+    ftruncate($fh, 0);
+    rewind($fh);
+    fwrite($fh, json_encode($entry));
+  }
+  flock($fh, LOCK_UN);
+  fclose($fh);
+  return (int)$entry['count'];
+}
+
+function rate_limit(string $bucket, int $windowSec, int $max, ?string $who = null): void {
+  if (rate_count($bucket, $windowSec, $who ?? ($_SERVER['REMOTE_ADDR'] ?? '0'), true) > $max) {
+    fail(429, 'Too many requests — try again shortly');
+  }
+}
+
+/* for sign-in: only failures count, so signing in all day never locks anyone out */
+function rate_blocked(string $bucket, int $windowSec, int $max, ?string $who = null): bool {
+  return rate_count($bucket, $windowSec, $who ?? ($_SERVER['REMOTE_ADDR'] ?? '0'), false) >= $max;
+}
+
+function rate_fail(string $bucket, int $windowSec, ?string $who = null): void {
+  rate_count($bucket, $windowSec, $who ?? ($_SERVER['REMOTE_ADDR'] ?? '0'), true);
 }
 
 /* ---------- origins ---------- */
@@ -283,10 +334,19 @@ function brand(): array {
  * Sending never throws: a mail failure must not lose a form.
  */
 
+/* The website's own sender: the mailbox chosen for it on the Team page, or
+   MAIL_FROM from the config until one is (and in the command-line tools). */
 function mail_from(): array {
+  if (function_exists('website_mailbox') && ($b = website_mailbox())) return [$b['address'], $b['name']];
   $c = cfg();
   $host = parse_url(site_url(), PHP_URL_HOST) ?: 'skyline-et.com';
   return [$c['MAIL_FROM'] ?? "office@$host", $c['MAIL_FROM_NAME'] ?? 'Skyline Travel Solution'];
+}
+
+/* where the website's own messages go: the website mailbox, or NOTIFY_EMAIL */
+function notify_address(): string {
+  if (function_exists('website_mailbox') && ($b = website_mailbox())) return $b['address'];
+  return (string)(cfg()['NOTIFY_EMAIL'] ?? '');
 }
 
 /* plain text → the site's look: white page, deep emerald band, emerald accent */
@@ -319,23 +379,68 @@ function mail_html(string $subject, string $body): string {
 function log_mail(string $to, string $subject, string $provider, string $status, ?string $providerId = null, ?string $error = null): void {
   try {
     db()->prepare('INSERT INTO email_log (to_email, subject, provider, status, provider_id, error) VALUES (?,?,?,?,?,?)')
-      ->execute([mb_substr($to, 0, 190), mb_substr($subject, 0, 255), $provider, $status, $providerId, $error ? mb_substr($error, 0, 500) : null]);
+      ->execute([mb_substr($to, 0, 500), mb_substr($subject, 0, 255), $provider, $status, $providerId, $error ? mb_substr($error, 0, 500) : null]);
   } catch (Throwable $e) {
     error_log('Skyline API: email_log write failed — ' . $e->getMessage());
   }
 }
 
-function resend_send(string $to, string $subject, string $text, string $replyTo, array $c, array $opts = []): array {
+/* what a person writes goes out looking like a letter, not a newsletter:
+   from a young domain, Gmail files a bannered template with one line in it
+   as spam. Quoted lines ("> …") are set off the way mail clients do it. */
+function mail_html_personal(string $body): string {
+  $esc = fn ($s) => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
+  $link = fn ($s) => preg_replace('#\bhttps?://[^\s<>"\']+#i', '<a href="$0" style="color:#0b6d37">$0</a>', $s);
+  $html = '';
+  foreach (preg_split('/\n{2,}/', trim(str_replace("\r", '', $body))) as $para) {
+    $lines = explode("\n", $para);
+    $quoted = array_filter($lines, fn ($l) => str_starts_with(ltrim($l), '>'));
+    if ($quoted && count($quoted) === count($lines)) {
+      $inner = implode("\n", array_map(fn ($l) => preg_replace('/^\s*>\s?/', '', $l), $lines));
+      $html .= '<blockquote style="margin:0 0 14px;padding:0 0 0 12px;border-left:3px solid #d5dbd7;color:#5b6660">'
+        . nl2br($link($esc($inner))) . '</blockquote>';
+    } else {
+      $html .= '<p style="margin:0 0 14px">' . nl2br($link($esc($para))) . '</p>';
+    }
+  }
+  return '<!doctype html><html><body style="margin:0;padding:0">'
+    . '<div style="font:15px/1.55 Arial,Helvetica,sans-serif;color:#1c2420;max-width:680px">' . $html . '</div>'
+    . '</body></html>';
+}
+
+/* "Name <address>", with the characters that would break the header taken out */
+function mail_address_header(string $address, string $name): string {
+  $name = trim(preg_replace('/[<>"\\\\\r\n]/', '', $name));
+  return $name !== '' ? "$name <$address>" : $address;
+}
+
+/* $to is one address or a list. $opts: from => [address, name] to send as one
+   of the office's mailboxes, cc => [..], headers => [..], attachments =>
+   [[path, filename]..], style => 'personal' for what a person wrote. */
+function resend_send($to, string $subject, string $text, string $replyTo, array $c, array $opts = []): array {
+  /* LOCAL DEVELOPMENT ONLY (docker/config.dev.php): nothing leaves the
+     machine — the message is written to private/dev-outbox as JSON. */
+  if (!empty($c['MAIL_DEV_OUTBOX'])) {
+    $id = 'dev-' . bin2hex(random_bytes(8));
+    [$from, $fromName] = $opts['from'] ?? mail_from();
+    file_put_contents(private_dir('dev-outbox') . '/' . date('Ymd-His') . "-$id.json", json_encode([
+      'id' => $id, 'from' => mail_address_header($from, $fromName), 'to' => array_values((array)$to),
+      'cc' => $opts['cc'] ?? [], 'reply_to' => $replyTo, 'subject' => $subject, 'text' => $text,
+      'headers' => $opts['headers'] ?? [], 'attachments' => array_map(fn ($a) => $a['filename'] ?? basename($a['path'] ?? ''), $opts['attachments'] ?? []),
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    return ['sent' => true, 'id' => $id, 'error' => null];
+  }
   $key = $c['RESEND_API_KEY'] ?? '';
   if ($key === '') return ['sent' => false, 'id' => null, 'error' => null];
-  [$from, $fromName] = mail_from();
+  [$from, $fromName] = $opts['from'] ?? mail_from();
   $payload = [
-    'from' => "$fromName <$from>",
-    'to' => [$to],
+    'from' => mail_address_header($from, $fromName),
+    'to' => array_values((array)$to),
     'subject' => $subject,
     'text' => $text,
-    'html' => mail_html($subject, $text),
+    'html' => ($opts['style'] ?? '') === 'personal' ? mail_html_personal($text) : mail_html($subject, $text),
   ];
+  if (!empty($opts['cc'])) $payload['cc'] = array_values((array)$opts['cc']);
   if ($replyTo && valid_email($replyTo)) $payload['reply_to'] = $replyTo;
   if (!empty($opts['headers']) && is_array($opts['headers'])) $payload['headers'] = $opts['headers'];
 
@@ -353,7 +458,7 @@ function resend_send(string $to, string $subject, string $text, string $replyTo,
   $ch = curl_init('https://api.resend.com/emails');
   curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT => 20,
+    CURLOPT_TIMEOUT => 30,
     CURLOPT_POST => true,
     CURLOPT_HTTPHEADER => ['Content-Type: application/json', "Authorization: Bearer $key"],
     CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE),
@@ -369,17 +474,22 @@ function resend_send(string $to, string $subject, string $text, string $replyTo,
   return ['sent' => false, 'id' => null, 'error' => $body['message'] ?? ($curlErr ?: "HTTP $status")];
 }
 
-function send_mail(string $to, string $subject, string $body, string $replyTo = '', array $opts = []): void {
-  if (!valid_email($to)) return;
+/* Never throws: a mail failure must not lose a form. Returns what happened,
+   so a person pressing Send can be told. */
+function send_mail($to, string $subject, string $body, string $replyTo = '', array $opts = []): array {
+  $to = array_values(array_filter((array)$to, fn ($a) => valid_email((string)$a)));
+  if (!$to) return ['sent' => false, 'id' => null, 'error' => 'No valid recipient'];
+  $all = implode(', ', array_merge($to, (array)($opts['cc'] ?? [])));
   $r = resend_send($to, $subject, $body, $replyTo, cfg(), $opts);
-  if ($r['sent']) { log_mail($to, $subject, 'resend', 'sent', $r['id']); return; }
-  $why = $r['error'] ?: 'RESEND_API_KEY is not set';
-  log_mail($to, $subject, 'resend', 'failed', null, $why);
-  error_log("Skyline API: mail to $to failed ($subject) — $why");
+  if ($r['sent']) { log_mail($all, $subject, 'resend', 'sent', $r['id']); return $r; }
+  $r['error'] = $r['error'] ?: 'RESEND_API_KEY is not set';
+  log_mail($all, $subject, 'resend', 'failed', null, $r['error']);
+  error_log("Skyline API: mail to $all failed ($subject) — {$r['error']}");
+  return $r;
 }
 
 function notify(string $subject, string $body, string $replyTo = '', array $opts = []): void {
-  $to = cfg()['NOTIFY_EMAIL'] ?? '';
+  $to = notify_address();
   if ($to) send_mail($to, $subject, $body, $replyTo, $opts);
 }
 

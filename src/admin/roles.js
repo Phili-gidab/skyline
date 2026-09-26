@@ -1,25 +1,27 @@
 /* The five roles, in the words staff see. What each may do is enforced by the
-   server (CAPS in php-api/api/lib.php); this file only names and explains. */
+   server (CAPS in php-api/api/lib.php); this file only names and explains.
+   Everyone also has their own mailbox, and reads the shared mailboxes that
+   are set up for their role (Team & mailboxes). */
 export const ROLES = {
   admin: {
     label: 'Administrator',
-    about: 'Everything: every client, every password, payments, the website, the team and board setup.',
+    about: 'Everything: every client and password, payments, the website, the team — and can open every mailbox, personal ones included.',
   },
   manager: {
     label: 'Manager',
-    about: 'All clients and payments, the mailbox and the website. Cannot see client passwords or manage the team.',
+    about: 'All clients and payments, website messages and the website. Cannot see client passwords or manage the team.',
   },
   agent: {
     label: 'Agent',
-    about: 'Only the clients assigned to them, including those clients’ passwords. No payments, mailbox or website.',
+    about: 'Only the clients assigned to them, including those clients’ passwords. No payments, website messages or website.',
   },
   frontdesk: {
     label: 'Front desk',
-    about: 'Registers new clients and answers website enquiries and the mailbox. No payments or passwords.',
+    about: 'Registers new clients and answers website enquiries. No payments or passwords.',
   },
   editor: {
     label: 'Website editor',
-    about: 'Edits the website’s text, photos and lists. Does not see clients or messages.',
+    about: 'Edits the website’s text, photos and lists. Does not see clients or website messages.',
   },
 }
 
