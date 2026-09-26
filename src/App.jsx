@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react'
 import { useSmoothScroll, gsap, ScrollTrigger } from './lib/smooth'
 
-import Nav from './components/Nav'
-import Masthead from './components/Masthead'
-import Atlas from './components/Atlas'
+import Bar from './components/Bar'
+import Intro from './components/Intro'
+import Stage from './components/Stage'
 import Record from './components/Record'
 import Services from './components/Services'
 import Process from './components/Process'
@@ -15,12 +15,12 @@ import Footer from './components/Footer'
 export default function App() {
   useSmoothScroll(true)
 
-  // fonts and lazy photographs change section heights; the triggers follow
+  // fonts and photographs change the measurements the stage is pinned against
   useEffect(() => {
     const refresh = () => ScrollTrigger.refresh()
     document.fonts?.ready.then(refresh)
     window.addEventListener('load', refresh)
-    const t = setTimeout(refresh, 800)
+    const t = setTimeout(refresh, 900)
     return () => {
       window.removeEventListener('load', refresh)
       clearTimeout(t)
@@ -29,11 +29,11 @@ export default function App() {
 
   return (
     <>
-      <Nav ready />
+      <Bar />
 
       <main>
-        <Masthead />
-        <Atlas />
+        <Intro />
+        <Stage />
         <Record />
         <Services />
         <Process />

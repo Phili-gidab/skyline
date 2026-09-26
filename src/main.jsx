@@ -1,6 +1,6 @@
 import React, { Suspense, lazy } from 'react'
 import ReactDOM from 'react-dom/client'
-import './styles/atlas.css'
+import './styles/skyline.css'
 import { loadContent } from './lib/content'
 
 const root = ReactDOM.createRoot(document.getElementById('root'))
