@@ -1,53 +1,57 @@
 import React, { useEffect } from 'react'
-import { useSmoothScroll, gsap, ScrollTrigger } from './lib/smooth'
 
-import Bar from './components/Bar'
-import Intro from './components/Intro'
-import Stage from './components/Stage'
-import Record from './components/Record'
-import Services from './components/Services'
-import Process from './components/Process'
-import StudyOffer from './components/StudyOffer'
-import Careers from './components/Careers'
-import Contact from './components/Contact'
-import Footer from './components/Footer'
+import Header from './components/site/Header'
+import Hero, { Stats } from './components/site/Hero'
+import Ribbon from './components/site/Ribbon'
+import Services from './components/site/Services'
+import Destinations from './components/site/Destinations'
+import Process from './components/site/Process'
+import Why from './components/site/Why'
+import Study from './components/site/Study'
+import Jobs from './components/site/Jobs'
+import Contact from './components/site/Contact'
+import Footer from './components/site/Footer'
+import CallBar from './components/site/CallBar'
 
 export default function App() {
-  useSmoothScroll(true)
-
-  // fonts and photographs change the measurements the stage is pinned against
+  // a gentle fade as sections arrive; nothing else moves
   useEffect(() => {
-    const refresh = () => ScrollTrigger.refresh()
-    document.fonts?.ready.then(refresh)
-    window.addEventListener('load', refresh)
-    const t = setTimeout(refresh, 900)
-    return () => {
-      window.removeEventListener('load', refresh)
-      clearTimeout(t)
-    }
+    const items = document.querySelectorAll(
+      '.section .card, .section .step, .section .dest, .section .why__item, .section__head--center'
+    )
+    items.forEach((el) => { if (!el.classList.contains('section__head--center')) el.classList.add('reveal') })
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add('is-in')
+            io.unobserve(e.target)
+          }
+        })
+      },
+      { threshold: 0.12 }
+    )
+    items.forEach((el) => io.observe(el))
+    return () => io.disconnect()
   }, [])
 
   return (
     <>
-      <Bar />
-
+      <Header />
       <main>
-        <Intro />
-        <Stage />
-        <Record />
+        <Hero />
+        <Stats />
+        <Ribbon />
         <Services />
+        <Destinations />
         <Process />
-        <StudyOffer />
-        <Careers />
+        <Why />
+        <Study />
+        <Jobs />
         <Contact />
       </main>
-
       <Footer />
+      <CallBar />
     </>
   )
-}
-
-if (typeof window !== 'undefined') {
-  window.gsap = gsap
-  window.ScrollTrigger = ScrollTrigger
 }
