@@ -44,6 +44,21 @@ const FORMS = [
     'extra' => ['role' => 'Position'],
     'email_required' => true,
   ],
+  /* the full application: replaces sending documents over Telegram */
+  'application' => [
+    'label' => 'Visa application',
+    'extra' => ['destination' => 'Destination', 'visa' => 'Visa type', 'travel' => 'Intake / travel date'],
+    'email_required' => true,
+  ],
+];
+
+/* which forms take documents, and whether at least one is required */
+const DOCUMENT_FORMS = ['application' => true, 'study' => false, 'enquiry' => false];
+
+/* what an applicant can say a file is — anything else is filed as "Other" */
+const DOCUMENT_LABELS = [
+  'Passport', 'Passport photo', 'Bank statement', 'Transcript / certificate', 'Diploma',
+  'Invitation letter', 'Employment letter', 'CV', 'Language certificate', 'Other',
 ];
 
 /* ============================================================
@@ -187,6 +202,76 @@ function accept_cv(array $f): array {
   return ['stored' => $stored, 'filename' => mb_substr($name, 0, 120), 'size' => (int)$f['size'], 'type' => $mime];
 }
 
+function document_dir(): string { return private_dir('documents'); }
+
+/* Applicants' documents: passports, photos, statements, certificates.
+   The type is read from the file's content, never trusted from its name —
+   a renamed script is refused. Phones send HEIC photos, so those are kept. */
+function accept_documents(bool $required): array {
+  $raw = $_FILES['documents'] ?? null;
+  $files = [];
+  if ($raw && is_array($raw['name'])) {
+    foreach ($raw['name'] as $i => $n) {
+      if (($raw['error'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) continue;
+      $files[] = ['name' => $n, 'tmp_name' => $raw['tmp_name'][$i], 'error' => $raw['error'][$i], 'size' => $raw['size'][$i]];
+    }
+  } elseif ($raw && ($raw['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+    $files[] = $raw;
+  }
+  if (!$files) {
+    if ($required) fail(400, 'Please attach at least one document — your passport, to start with');
+    return [];
+  }
+  if (count($files) > 12) fail(400, 'Please send no more than 12 documents at a time');
+
+  $labels = (array)($_POST['doc_labels'] ?? []);
+  $types = [
+    'application/pdf' => 'pdf',
+    'image/jpeg' => 'jpg',
+    'image/png' => 'png',
+    'image/webp' => 'webp',
+    'image/heic' => 'heic',
+    'image/heif' => 'heic',
+    'application/msword' => 'doc',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+  ];
+  $finfo = new finfo(FILEINFO_MIME_TYPE);
+
+  // check everything before storing anything, so a bad file leaves nothing behind
+  $total = 0;
+  $checked = [];
+  foreach ($files as $i => $f) {
+    $name = (string)$f['name'];
+    if ($f['error'] !== UPLOAD_ERR_OK) fail(400, "\"$name\" did not upload — please try again, or send a smaller file");
+    if ($f['size'] > 10 * 1024 * 1024) fail(400, "\"$name\" is larger than 10 MB — please send a smaller copy");
+    $total += (int)$f['size'];
+    $mime = $finfo->file($f['tmp_name']) ?: '';
+    $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+    $kind = $types[$mime] ?? null;
+    if (!$kind && $ext === 'docx' && in_array($mime, ['application/zip', 'application/octet-stream'], true)) {
+      $zip = (string)file_get_contents($f['tmp_name'], false, null, 0, 4096);
+      if (str_starts_with($zip, 'PK') && str_contains($zip, 'word/')) $kind = 'docx';
+    }
+    if (!$kind) fail(400, "\"$name\" is not a PDF, photo or Word document");
+    $label = in_array($labels[$i] ?? '', DOCUMENT_LABELS, true) ? $labels[$i] : 'Other';
+    $checked[] = [$f, $kind, $mime, $label];
+  }
+  if ($total > 40 * 1024 * 1024) fail(400, 'Together your documents are over 40 MB — please send smaller copies');
+
+  $dir = document_dir();
+  $out = [];
+  foreach ($checked as [$f, $kind, $mime, $label]) {
+    $stored = gmdate('Ymd') . '-' . bin2hex(random_bytes(8)) . ".$kind";
+    if (!move_uploaded_file($f['tmp_name'], "$dir/$stored")) {
+      foreach ($out as $done) @unlink("$dir/{$done['stored']}");
+      fail(500, 'Could not store your documents — please try again');
+    }
+    $name = preg_replace('/[^A-Za-z0-9._ ()-]/', '_', basename((string)$f['name'])) ?: "document.$kind";
+    $out[] = ['stored' => $stored, 'filename' => mb_substr($name, 0, 120), 'size' => (int)$f['size'], 'type' => $mime, 'label' => $label];
+  }
+  return $out;
+}
+
 if ($method === 'POST' && $path === '/submit') {
   rate_limit('submit', 60, 6);
   $multipart = str_starts_with((string)($_SERVER['CONTENT_TYPE'] ?? ''), 'multipart/form-data');
@@ -216,6 +301,12 @@ if ($method === 'POST' && $path === '/submit') {
     $cv = accept_cv($_FILES['cv'] ?? ['error' => UPLOAD_ERR_NO_FILE]);
     $extra['cv'] = $cv;
   }
+  $docs = [];
+  if (isset(DOCUMENT_FORMS[$kind])) {
+    $docs = accept_documents(DOCUMENT_FORMS[$kind] && $multipart);
+    if (DOCUMENT_FORMS[$kind] && !$docs) fail(400, 'Please attach at least one document — your passport, to start with');
+    if ($docs) $extra['documents'] = $docs;
+  }
 
   db()->prepare('INSERT INTO submissions (kind, name, email, phone, message, extra) VALUES (?,?,?,?,?,?)')
     ->execute([$kind, $name, $email ?: null, $phone, $message ?: null, $extra ? json_encode($extra, JSON_UNESCAPED_UNICODE) : null]);
@@ -226,14 +317,29 @@ if ($method === 'POST' && $path === '/submit') {
     if (isset($extra[$key])) $lines .= str_pad("$label:", 13) . $extra[$key] . "\n";
   }
   if ($cv) $lines .= "CV:          {$cv['filename']} (attached)\n";
+
+  /* Documents ride along on the email only while they are small enough for
+     every mail server to accept; past that the email lists them and the files
+     stay in the admin, which is where they are kept either way. */
+  $attach = $cv ? [['path' => cv_dir() . '/' . $cv['stored'], 'filename' => $cv['filename']]] : [];
+  if ($docs) {
+    $size = array_sum(array_column($docs, 'size'));
+    $inline = $size <= 10 * 1024 * 1024;
+    $lines .= "\nDocuments (" . count($docs) . ($inline ? ', attached' : ', in the admin — too large to attach') . "):\n";
+    foreach ($docs as $d) {
+      $lines .= '  · ' . str_pad($d['label'] . ':', 26) . $d['filename'] . ' (' . round($d['size'] / 1024) . " KB)\n";
+      if ($inline) $attach[] = ['path' => document_dir() . '/' . $d['stored'], 'filename' => $d['label'] . ' — ' . $d['filename']];
+    }
+  }
+
   notify(
     "{$form['label']} — $name",
     "A new {$form['label']} arrived through the website.\n\n$lines\n"
     . 'Message:' . "\n" . ($message ?: '—') . "\n\n"
     . ($email ? 'Reply to this email to answer them directly, or ' : 'Call them back, or ')
-    . 'open it in the admin: ' . site_url('/admin/submissions'),
+    . 'open it in the admin: ' . site_url('/admin/submissions?kind=' . $kind),
     $email,
-    $cv ? ['attachments' => [['path' => cv_dir() . '/' . $cv['stored'], 'filename' => $cv['filename']]]] : []
+    $attach ? ['attachments' => $attach] : []
   );
 
   /* the confirmation — the office still answers personally; this only says it arrived */
@@ -261,6 +367,15 @@ if ($method === 'POST' && $path === '/submit') {
         . (isset($extra['role']) ? " for the {$extra['role']} position" : '')
         . " at Skyline Travel Solution. We have your application and your CV.\n\n"
         . "If your profile matches what we are looking for, we will contact you to arrange an interview.",
+      ],
+      'application' => [
+        'We received your application and documents — Skyline Travel Solution',
+        "Dear $name,\n\nThank you for applying"
+        . (isset($extra['destination']) ? " for {$extra['destination']}" : '')
+        . ". We have your application and the " . count($docs) . ' document' . (count($docs) === 1 ? '' : 's') . " you sent:\n\n"
+        . implode("\n", array_map(fn ($d) => "  · {$d['label']} — {$d['filename']}", $docs))
+        . "\n\nA consultant will review your file and contact you about anything still needed. "
+        . "You do not need to send these again on Telegram or WhatsApp.\n\nNothing is payable until your visa is approved.",
       ],
     };
     send_mail($email, $ack[0], $ack[1] . $sign, cfg()['NOTIFY_EMAIL'] ?? '');
@@ -662,8 +777,30 @@ if (preg_match('#^/admin/submissions/(\d+)$#', $path, $m) && in_array($method, [
   $st->execute([$id]);
   $extra = json_col($st->fetchColumn() ?: '') ?: [];
   if (!empty($extra['cv']['stored'])) @unlink(cv_dir() . '/' . basename((string)$extra['cv']['stored']));
+  foreach ((array)($extra['documents'] ?? []) as $d) {
+    if (!empty($d['stored'])) @unlink(document_dir() . '/' . basename((string)$d['stored']));
+  }
   db()->prepare('DELETE FROM submissions WHERE id = ?')->execute([$id]);
   send(200, ['ok' => true]);
+}
+
+/* one applicant document, to signed-in staff only */
+if ($method === 'GET' && preg_match('#^/admin/submissions/(\d+)/documents/(\d+)$#', $path, $m)) {
+  require_staff();
+  $st = db()->prepare('SELECT extra FROM submissions WHERE id = ?');
+  $st->execute([(int)$m[1]]);
+  $doc = ((json_col($st->fetchColumn() ?: '') ?: [])['documents'] ?? [])[(int)$m[2]] ?? null;
+  $file = $doc ? document_dir() . '/' . basename((string)$doc['stored']) : '';
+  if (!$doc || !is_file($file)) fail(404, 'Document not found');
+  $inline = !empty($_GET['view']) && preg_match('#^(application/pdf|image/(jpeg|png|webp))$#', (string)$doc['type']);
+  header('Content-Type: ' . ($doc['type'] ?: 'application/octet-stream'));
+  header('Content-Disposition: ' . ($inline ? 'inline' : 'attachment') . '; filename="' . str_replace('"', '', (string)$doc['filename']) . '"');
+  header('Content-Length: ' . filesize($file));
+  header('Cache-Control: private, no-store');
+  header('X-Content-Type-Options: nosniff');
+  header("Content-Security-Policy: default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox");
+  readfile($file);
+  exit;
 }
 
 /* the CV sits outside the web root: read back only by a signed-in member of staff */

@@ -26,6 +26,7 @@ const CSV_COLUMNS = [
   { label: 'Email', value: 'email' },
   ...Object.entries(EXTRA_LABELS).map(([k, label]) => ({ label, value: (s) => s.extra?.[k] || '' })),
   { label: 'CV', value: (s) => s.extra?.cv?.filename || '' },
+  { label: 'Documents', value: (s) => (s.extra?.documents || []).map((d) => `${d.label}: ${d.filename}`).join('; ') },
   { label: 'Message', value: 'message' },
   { label: 'Read', value: (s) => (s.is_read ? 'yes' : 'no') },
 ]
@@ -72,7 +73,9 @@ export default function Submissions() {
   }
 
   const remove = async (s) => {
-    if (!confirm(`Delete ${s.name}’s ${FORM_KINDS[s.kind]?.label.toLowerCase() || 'submission'}${s.extra?.cv ? ' and their CV' : ''}? This cannot be undone.`)) return
+    const docs = s.extra?.documents?.length || 0
+    const files = [s.extra?.cv && 'their CV', docs && `${docs} document${docs === 1 ? '' : 's'}`].filter(Boolean).join(' and ')
+    if (!confirm(`Delete ${s.name}’s ${FORM_KINDS[s.kind]?.label.toLowerCase() || 'submission'}${files ? ` and ${files}` : ''}? This cannot be undone.`)) return
     await api.deleteSubmission(s.id).catch((e) => setError(e.message))
     setOpenId(null)
     load()
@@ -134,6 +137,11 @@ export default function Submissions() {
                 <span className="adm-pill">{FORM_KINDS[s.kind]?.label || s.kind}</span>
                 <span className="adm-sub-sum">{summary(s)}</span>
                 {s.extra?.cv && <span className="adm-pill ok">CV</span>}
+                {s.extra?.documents?.length > 0 && (
+                  <span className="adm-pill ok">
+                    {s.extra.documents.length} doc{s.extra.documents.length === 1 ? '' : 's'}
+                  </span>
+                )}
                 <small>{when(s.created_at)}</small>
               </button>
 
@@ -169,6 +177,37 @@ export default function Submissions() {
                         Download CV — {s.extra.cv.filename} ({fmtSize(s.extra.cv.size)})
                       </button>
                     </p>
+                  )}
+                  {s.extra?.documents?.length > 0 && (
+                    <div className="adm-docs">
+                      <h3 className="adm-docs__title">
+                        Documents <span>{s.extra.documents.length}</span>
+                      </h3>
+                      <ul>
+                        {s.extra.documents.map((d, n) => (
+                          <li key={d.stored}>
+                            <span className="adm-docs__type">{(d.filename.split('.').pop() || '').toUpperCase()}</span>
+                            <span className="adm-docs__name">
+                              <b>{d.label}</b>
+                              <small>
+                                {d.filename} · {fmtSize(d.size)}
+                              </small>
+                            </span>
+                            {/^(application\/pdf|image\/(jpeg|png|webp))$/.test(d.type) && (
+                              <button className="adm-btn small ghost" onClick={() => api.openDocument(s.id, n).catch((e) => setError(e.message))}>
+                                Open
+                              </button>
+                            )}
+                            <button
+                              className="adm-btn small ghost"
+                              onClick={() => api.downloadDocument(s.id, n, `${s.name} — ${d.label} — ${d.filename}`).catch((e) => setError(e.message))}
+                            >
+                              Download
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                   <div className="adm-sub-actions">
                     {s.email && (

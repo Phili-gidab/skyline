@@ -1043,3 +1043,139 @@ button.dest { display: block; width: 100%; text-align: left; font: inherit; colo
   .ribbon__track { animation: none; }
   .hero__bg img.is-on { animation: none; }
 }
+
+/* ============================================================
+   APPLY ONLINE — details and documents together
+   ============================================================ */
+
+.apply { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: clamp(1.5rem, 3vw, 3rem); align-items: start; }
+
+.apply__intro { position: sticky; top: 110px; }
+
+.apply__steps { display: grid; gap: 0.75rem; margin: 1.6rem 0 1.4rem; }
+
+.apply__steps li { display: flex; align-items: center; gap: 0.8rem; font-weight: 500; }
+
+.apply__steps b {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--green-tint);
+  color: var(--green);
+  font-family: var(--head);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 900px) {
+  .apply { grid-template-columns: 1fr; }
+  .apply__intro { position: static; }
+}
+
+/* the uploader */
+.up { margin-top: 1.1rem; }
+
+.up__zone {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  padding: 1.5rem 1rem;
+  border: 2px dashed var(--line);
+  border-radius: var(--radius);
+  background: var(--off);
+  text-align: center;
+  color: var(--muted);
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+}
+
+.up.is-drag .up__zone { border-color: var(--green); background: var(--green-tint); }
+
+.up__zone svg { color: var(--green); }
+.up__zone p { color: var(--text); }
+.up__zone button { color: var(--green); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.up__zone small { font-size: 0.82rem; color: var(--light); }
+
+.up__list { display: grid; gap: 0.5rem; margin-top: 0.9rem; }
+
+.up__list li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+}
+
+.up__type {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  background: var(--green-tint);
+  color: var(--green-dark);
+  font-family: var(--head);
+  font-size: 0.66rem;
+  font-weight: 600;
+}
+
+.up__name { min-width: 0; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.up__name small { display: block; color: var(--light); font-size: 0.78rem; }
+
+.up__list select {
+  padding: 0.45rem 0.6rem;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  background: var(--white);
+  font-size: 0.85rem;
+  max-width: 11rem;
+}
+
+.up__x {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--light);
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.up__x:hover { background: #fdf2f2; color: #a03030; }
+
+.up__total { margin-top: 0.6rem; font-size: 0.84rem; color: var(--muted); }
+.up__problem { margin-top: 0.6rem; font-size: 0.88rem; color: #a03030; }
+
+.up__progress {
+  position: relative;
+  height: 40px;
+  margin-top: 1.1rem;
+  border-radius: var(--radius-sm);
+  background: var(--off);
+  overflow: hidden;
+}
+
+.up__progress i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--green-tint);
+  transition: width 0.25s var(--ease);
+}
+
+.up__progress span {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding-inline: 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--green-dark);
+}
+
+@media (max-width: 560px) {
+  .up__list li { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .up__list select { grid-column: 1 / -1; max-width: none; }
+}

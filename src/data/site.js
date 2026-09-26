@@ -441,6 +441,7 @@ export const NAV = [
   { label: 'Destinations', href: '#destinations' },
   { label: 'Services', href: '#services' },
   { label: 'Process', href: '#process' },
+  { label: 'Apply', href: '#apply' },
   { label: 'Study', href: '#study' },
   { label: 'Careers', href: '#careers' },
   { label: 'Contact', href: '#contact' },

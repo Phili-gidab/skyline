@@ -183,6 +183,7 @@ export const FORM_KINDS = {
   enquiry: { label: 'Visa enquiry', plural: 'Visa enquiries' },
   study: { label: 'Study application', plural: 'Study applications' },
   career: { label: 'Job application', plural: 'Job applications' },
+  application: { label: 'Visa application', plural: 'Visa applications' },
 }
 
 export const EXTRA_LABELS = {
@@ -193,4 +194,5 @@ export const EXTRA_LABELS = {
   gpa: 'GPA',
   intake: 'Intake',
   role: 'Position',
+  travel: 'Intake / travel date',
 }

@@ -105,6 +105,13 @@ export const api = {
   setRead: (id, isRead) => request(`/admin/submissions/${id}`, { method: 'PUT', body: { is_read: isRead } }),
   deleteSubmission: (id) => request(`/admin/submissions/${id}`, { method: 'DELETE' }),
   downloadCv: (id, filename) => saveBlob(`/admin/submissions/${id}/cv`, filename),
+  downloadDocument: (id, n, filename) => saveBlob(`/admin/submissions/${id}/documents/${n}`, filename),
+  openDocument: async (id, n) => {
+    // opened in a tab of its own; the blob URL carries no token and dies with the tab
+    const url = URL.createObjectURL(await fetchBlob(`/admin/submissions/${id}/documents/${n}?view=1`))
+    window.open(url, '_blank', 'noopener')
+    setTimeout(() => URL.revokeObjectURL(url), 60000)
+  },
 
   inbox: (box) => request(`/admin/inbox?box=${box || 'inbox'}`),
   inboxMessage: (id) => request(`/admin/inbox/${id}`),

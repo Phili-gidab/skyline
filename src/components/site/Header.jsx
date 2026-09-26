@@ -42,7 +42,7 @@ export default function Header() {
             </span>
             {BRAND.phones[0].display}
           </a>
-          <a className="btn btn--solid btn--sm" href="#contact" onClick={(e) => go(e, '#contact')}>
+          <a className="btn btn--solid btn--sm" href="#apply" onClick={(e) => go(e, '#apply')}>
             Apply now
           </a>
           <button

@@ -6,6 +6,7 @@ import Ribbon from './components/site/Ribbon'
 import Services from './components/site/Services'
 import Destinations from './components/site/Destinations'
 import Process from './components/site/Process'
+import Apply from './components/site/Apply'
 import Why from './components/site/Why'
 import Study from './components/site/Study'
 import Jobs from './components/site/Jobs'
@@ -45,6 +46,7 @@ export default function App() {
         <Services />
         <Destinations />
         <Process />
+        <Apply />
         <Why />
         <Study />
         <Jobs />
